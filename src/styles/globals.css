@@ -252,3 +252,60 @@
 html {
   font-size: var(--font-size);
 }
+
+/**
+ * Native-app feel: strip away behaviors that read as "a website in a
+ * browser" (pinch/double-tap zoom, long-press callout menus, text
+ * selection, image drag-to-save, tap flash, rubber-band overscroll,
+ * visible scrollbars).
+ */
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior-y: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+  font-size: max(16px, 1em);
+}
+
+img,
+picture,
+video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
+a {
+  -webkit-touch-callout: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+}
