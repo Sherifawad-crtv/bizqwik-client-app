@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { IntroScreen } from "./components/bizqwik/IntroScreen";
 import { AuthScreen } from "./components/bizqwik/AuthScreen";
+import { NewPasswordScreen } from "./components/bizqwik/NewPasswordScreen";
 import { HomeScreen } from "./components/bizqwik/HomeScreen";
 import { MyBookings } from "./components/bizqwik/MyBookings";
 import { WalletScreen } from "./components/bizqwik/WalletScreen";
@@ -48,6 +49,16 @@ function App() {
   }, [auth.client]);
 
   if (branding.loading || !auth.ready) return <Splash />;
+
+  // Password recovery (member followed the reset link) wins over everything
+  // else — they must set a new password before continuing.
+  if (auth.recovering) {
+    return (
+      <Shell>
+        <NewPasswordScreen />
+      </Shell>
+    );
+  }
 
   if (branding.error) {
     return (

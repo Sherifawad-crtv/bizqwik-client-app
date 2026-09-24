@@ -48,6 +48,20 @@ test("member: intro -> sign in -> home -> book -> bookings -> wallet", async ({ 
   await expect(page.getByText("Compensation")).toBeVisible();
 });
 
+// Forgot-password: request a reset link from the sign-in screen.
+test("member: forgot password sends a reset link", async ({ page }) => {
+  await mockBackend(page);
+  await page.goto("/?gym=revolt");
+  await page.getByRole("button", { name: "Skip" }).click();
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Forgot password?" }).click();
+  await expect(page.getByRole("heading", { name: "Reset password" })).toBeVisible();
+  await page.locator('input[type="email"]').fill("zara@zztest.dev");
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(page.getByText(/reset link is on its way/i)).toBeVisible();
+});
+
 // A gym slug that the backend rejects should show the friendly "Gym not found".
 test("member: unknown gym shows a friendly error", async ({ page }) => {
   await page.route(/\/functions\/v1\/make-server-980e1cbf\//, (route) => {
