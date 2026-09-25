@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, AlertCircle, RotateCcw } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 
@@ -9,73 +9,121 @@ interface QRScannerScreenProps {
   onScanSuccess: (qrCode: string) => void;
 }
 
+const REGION_ID = "qr-reader";
+
+// getUserMedia error -> a message a member can actually act on. iOS Safari
+// (the platform most of our members are on) reports permission denial as
+// NotAllowedError whether it was an explicit tap-"Don't Allow" or a
+// previously-saved site setting, so both get the Settings pointer.
+function friendlyCameraError(err: unknown): string {
+  const name = err instanceof DOMException ? err.name : (err as { name?: string } | undefined)?.name;
+  if (!window.isSecureContext) {
+    return "Camera access needs a secure (https) connection. Open this gym's app link directly rather than a plain http address.";
+  }
+  switch (name) {
+    case "NotAllowedError":
+    case "PermissionDeniedError":
+      return "Camera access is blocked for this app. On iPhone: tap \"AA\" in the address bar → Website Settings → Camera → Allow (or Settings app → Safari → Camera → Allow), then try again.";
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return "No camera was found on this device.";
+    case "NotReadableError":
+    case "TrackStartError":
+      return "The camera is in use by another app. Close other camera apps (or tabs) and try again.";
+    case "OverconstrainedError":
+    case "ConstraintNotSatisfiedError":
+      return "Couldn't access the back camera on this device.";
+    default:
+      return "Couldn't access the camera. Check that this app has camera permission and try again.";
+  }
+}
+
 export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps) {
   const [scanning, setScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0); // bump to retry after an error
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasScannedRef = useRef(false);
+  const aliveRef = useRef(true);
 
   useEffect(() => {
-    const qrCodeRegionId = "qr-reader";
-    let html5QrCode: Html5Qrcode;
+    aliveRef.current = true;
+    hasScannedRef.current = false;
+    setError(null);
+    setScanning(true);
 
-    const startScanner = async () => {
+    const html5QrCode = new Html5Qrcode(REGION_ID, /* verbose= */ false);
+    scannerRef.current = html5QrCode;
+
+    // No `qrbox` here on purpose: passing one makes the library inject its
+    // own shaded scan-region + color-shifting corner brackets, positioned
+    // absolutely against the nearest positioned ancestor — which, without
+    // extra plumbing, conflicts with (and visually inverts against) our own
+    // corner-bracket overlay below. Scanning the full frame is also more
+    // forgiving for members than requiring a pixel-perfect box.
+    const config = { fps: 10, aspectRatio: 1.0 };
+
+    const onDecoded = (decodedText: string) => {
+      if (hasScannedRef.current || !aliveRef.current) return;
+      hasScannedRef.current = true;
+      setScanning(false);
+      html5QrCode.stop().catch(() => {}).finally(() => {
+        if (aliveRef.current) onScanSuccess(decodedText);
+      });
+    };
+    const onDecodeError = () => {}; // fires continuously while no code is in frame — expected, ignore
+
+    const start = async () => {
       try {
-        html5QrCode = new Html5Qrcode(qrCodeRegionId);
-        scannerRef.current = html5QrCode;
-
-        const config = {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        };
-
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText) => {
-            if (!hasScannedRef.current) {
-              hasScannedRef.current = true;
-              setScanning(false);
-              
-              // Stop scanner
-              html5QrCode.stop().then(() => {
-                onScanSuccess(decodedText);
-              });
-            }
-          },
-          (errorMessage) => {
-            // Ignore error messages during scanning
-          }
-        );
-      } catch (err) {
-        console.error("Error starting scanner:", err);
-        setError("Unable to access camera. Please check permissions.");
-        setScanning(false);
+        // Non-exact "environment" is a preference, not a hard constraint, so
+        // browsers fall back to whatever camera is available rather than
+        // throwing — this is the most broadly compatible first attempt.
+        await html5QrCode.start({ facingMode: "environment" }, config, onDecoded, onDecodeError);
+      } catch {
+        if (!aliveRef.current) return;
+        // Some devices reject facingMode constraints outright; fall back to
+        // enumerating cameras and picking the last one (rear camera is
+        // conventionally listed last on phones).
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          if (!cameras.length) throw new Error("no camera");
+          const cameraId = cameras[cameras.length - 1].id;
+          await html5QrCode.start(cameraId, config, onDecoded, onDecodeError);
+        } catch (err) {
+          if (!aliveRef.current) return;
+          console.error("Error starting QR scanner:", err);
+          setError(friendlyCameraError(err));
+          setScanning(false);
+        }
       }
     };
 
-    startScanner();
+    start();
 
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch((err) => {
-          console.error("Error stopping scanner:", err);
-        });
+      aliveRef.current = false;
+      const inst = scannerRef.current;
+      if (inst && inst.isScanning) {
+        inst.stop().catch(() => {}).finally(() => inst.clear());
+      } else {
+        inst?.clear();
       }
     };
-  }, [onScanSuccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt]);
 
   const handleClose = () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.stop().then(() => {
-        onClose();
-      }).catch(() => {
-        onClose();
-      });
+    const inst = scannerRef.current;
+    if (inst && inst.isScanning) {
+      inst.stop().then(onClose).catch(onClose);
     } else {
       onClose();
     }
+  };
+
+  const retry = () => {
+    setError(null);
+    setAttempt((n) => n + 1);
   };
 
   return (
@@ -96,6 +144,7 @@ export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps
           </div>
           <button
             onClick={handleClose}
+            aria-label="Close scanner"
             className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white active:scale-95 transition-transform duration-[var(--transition-base)]"
           >
             <X className="w-5 h-5" />
@@ -105,16 +154,18 @@ export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps
 
       {/* Scanner Container */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="relative">
-          {/* QR Scanner */}
-          <div 
-            id="qr-reader" 
-            className="rounded-3xl overflow-hidden"
-            style={{ width: "100%", maxWidth: "400px" }}
+        <div className="relative w-full max-w-[400px]">
+          {/* QR Scanner — position:relative + a reserved aspect-square box so
+              the injected <video> has somewhere to render (and our overlay
+              lines up) before/while the camera stream attaches. */}
+          <div
+            id={REGION_ID}
+            className="relative w-full aspect-square rounded-3xl overflow-hidden bg-neutral-900 [&_video]:!absolute [&_video]:!inset-0 [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover"
           />
 
-          {/* Scanning Frame Overlay */}
-          {scanning && (
+          {/* Scanning Frame Overlay (purely decorative — the library scans
+              the full frame, not just this box) */}
+          {scanning && !error && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="relative w-64 h-64">
                 {/* Corner Borders */}
@@ -122,7 +173,7 @@ export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps
                 <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-[var(--bq-primary)] rounded-tr-3xl" />
                 <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-[var(--bq-primary)] rounded-bl-3xl" />
                 <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-[var(--bq-primary)] rounded-br-3xl" />
-                
+
                 {/* Scanning Line Animation */}
                 <motion.div
                   className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--bq-primary)] to-transparent"
@@ -150,12 +201,20 @@ export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps
             exit={{ opacity: 0, y: 20 }}
             className="absolute bottom-0 left-0 right-0 p-4"
           >
-            <div className="bg-red-500 text-white p-4 rounded-2xl flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium mb-1">Camera Access Required</p>
-                <p className="text-sm text-white/90">{error}</p>
+            <div className="bg-red-500 text-white p-4 rounded-2xl flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium mb-1">Camera unavailable</p>
+                  <p className="text-sm text-white/90">{error}</p>
+                </div>
               </div>
+              <button
+                onClick={retry}
+                className="h-11 rounded-xl bg-white/15 flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform"
+              >
+                <RotateCcw className="w-4 h-4" /> Try again
+              </button>
             </div>
           </motion.div>
         )}

@@ -17,7 +17,14 @@ export default defineConfig({
     baseURL: "http://localhost:5173",
     trace: "off",
     ...devices["Pixel 7"],
-    launchOptions: { executablePath: CHROMIUM },
+    permissions: ["camera"],
+    launchOptions: {
+      executablePath: CHROMIUM,
+      // Synthesize a fake camera device so the QR scanner's real getUserMedia
+      // + <video> rendering path can be exercised headlessly (no real webcam
+      // in this environment). Harmless for tests that never touch the camera.
+      args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+    },
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
