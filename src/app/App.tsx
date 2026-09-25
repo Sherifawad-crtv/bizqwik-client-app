@@ -16,6 +16,7 @@ import { Toaster } from "./components/ui/sonner";
 import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
+import { warmCameraPermission } from "../lib/camera";
 
 type Step = "home" | "bookings" | "wallet" | "membership" | "rewards" | "profile";
 type NavItem = "home" | "bookings" | "profile";
@@ -61,6 +62,14 @@ function App() {
 
   useEffect(() => {
     if (auth.client) setStep("home");
+  }, [auth.client]);
+
+  // Ask for camera access once, right after sign-in — not lazily the first
+  // time someone taps the scan FAB. The browser only ever prompts once per
+  // origin regardless; this just moves *when* that happens so the first
+  // real scan isn't interrupted by the dialog.
+  useEffect(() => {
+    if (auth.client) warmCameraPermission();
   }, [auth.client]);
 
   if (branding.loading || !auth.ready) return <Splash />;

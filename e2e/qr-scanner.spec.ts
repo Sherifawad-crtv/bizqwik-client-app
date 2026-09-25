@@ -70,3 +70,35 @@ test("QR scanner: reachable from Home without navigating to Bookings", async ({ 
   await page.getByRole("button", { name: "Scan to check in" }).click();
   await expect(page.getByRole("heading", { name: "Scan QR Code" })).toBeVisible();
 });
+
+// Camera permission is warmed once, right after sign-in — not lazily on the
+// first FAB tap (see lib/camera.ts). Wraps (not replaces) the real
+// getUserMedia so the fake-device stream still flows, while counting calls,
+// to prove the warm-up call actually fires before the FAB is ever touched.
+test("QR scanner: camera permission is warmed on sign-in, not on first tap", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __gumCalls: number }).__gumCalls = 0;
+    const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = (constraints) => {
+      (window as unknown as { __gumCalls: number }).__gumCalls++;
+      return real(constraints);
+    };
+  });
+
+  await signIn(page);
+  // Warm-up fires from a useEffect right after auth.client resolves —
+  // give it a beat, but never touch the FAB before checking.
+  await expect
+    .poll(async () => page.evaluate(() => (window as unknown as { __gumCalls: number }).__gumCalls), { timeout: 5_000 })
+    .toBeGreaterThanOrEqual(1);
+
+  const afterWarm = await page.evaluate(() => (window as unknown as { __gumCalls: number }).__gumCalls);
+
+  // Opening the scanner now acquires its own stream — permission is already
+  // resolved, so this is the "instant, no dialog" open the fix is for.
+  await page.getByRole("button", { name: "Scan to check in" }).click();
+  await expect(page.getByRole("heading", { name: "Scan QR Code" })).toBeVisible();
+  await expect
+    .poll(async () => page.evaluate(() => (window as unknown as { __gumCalls: number }).__gumCalls), { timeout: 5_000 })
+    .toBeGreaterThan(afterWarm);
+});
