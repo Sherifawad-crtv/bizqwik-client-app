@@ -48,7 +48,7 @@ export function IntroScreen({ currentSlide, onSlideChange, onComplete }: IntroSc
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[var(--bq-neutral)] to-white flex flex-col">
+    <div className="min-h-full bg-gradient-to-b from-[var(--bq-neutral)] to-white flex flex-col">
       {/* Skip Button */}
       <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-12 flex justify-end">
         <button

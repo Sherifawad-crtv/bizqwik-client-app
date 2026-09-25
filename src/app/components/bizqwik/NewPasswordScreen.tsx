@@ -38,7 +38,7 @@ export function NewPasswordScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col px-6 pt-16 pb-10">
+    <div className="min-h-full bg-white flex flex-col px-6 pt-16 pb-10">
       <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         <h1 className="font-display text-[32px] leading-tight tracking-tight text-[var(--bq-text-primary)] mb-2">Set a new password</h1>
         <p className="text-[var(--bq-text-secondary)]">Choose a new password for your {appName} account.</p>

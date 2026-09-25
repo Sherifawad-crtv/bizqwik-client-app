@@ -33,7 +33,7 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
   }, []);
 
   return (
-    <div className="min-h-screen bg-white pb-28">
+    <div className="min-h-full bg-white pb-28">
       <div className="px-6 pt-14 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {onBack && (

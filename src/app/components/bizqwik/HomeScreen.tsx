@@ -48,7 +48,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onNotificat
   };
 
   return (
-    <div className="min-h-screen bg-white pb-28">
+    <div className="min-h-full bg-white pb-28">
       <div className="px-6 pt-14 pb-4 flex items-start justify-between">
         <div>
           <div className="text-[var(--bq-text-secondary)] text-sm">Welcome back</div>

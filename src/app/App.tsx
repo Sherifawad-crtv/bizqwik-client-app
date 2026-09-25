@@ -20,10 +20,18 @@ import { api } from "../lib/api";
 type Step = "home" | "bookings" | "wallet" | "membership" | "rewards" | "profile";
 type NavItem = "home" | "bookings" | "profile";
 
+// `100svh` (small viewport height), not `100vh`/`min-h-screen` — on iOS
+// Safari, `100vh` is measured against the viewport with the address bar
+// collapsed, which is taller than what's actually visible when it's shown.
+// That extra sliver was making the whole page scrollable/rubber-band even
+// when no screen had enough content to need it. Locking the outer shell to
+// `100svh` + `overflow-hidden` and making ONE inner region the scroll
+// container (only it scrolls, and only when content actually overflows)
+// fixes that at the root instead of screen-by-screen.
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-[430px] min-h-screen bg-white shadow-lg">{children}</div>
+    <div className="h-[100svh] overflow-hidden bg-white">
+      <div className="mx-auto max-w-[430px] h-full overflow-y-auto overscroll-contain bg-white shadow-lg">{children}</div>
       <Toaster />
     </div>
   );
@@ -32,7 +40,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Splash() {
   return (
     <Shell>
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <div className="w-10 h-10 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />
       </div>
     </Shell>
@@ -70,7 +78,7 @@ function App() {
   if (branding.error) {
     return (
       <Shell>
-        <div className="min-h-screen flex items-center justify-center px-8 text-center">
+        <div className="min-h-full flex items-center justify-center px-8 text-center">
           <div>
             <div className="font-display text-[22px] text-[var(--bq-text-primary)] mb-2">Gym not found</div>
             <p className="text-[var(--bq-text-secondary)] text-sm">{branding.error}</p>

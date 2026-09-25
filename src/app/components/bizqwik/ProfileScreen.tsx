@@ -25,7 +25,7 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
   const initials = name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 
   return (
-    <div className="min-h-screen bg-white pb-28">
+    <div className="min-h-full bg-white pb-28">
       <div className="px-6 pt-14 pb-4 flex items-center justify-between">
         <h1 className="font-display text-[24px] text-[var(--bq-text-primary)]">Profile</h1>
         <NotificationBell count={notificationCount} onClick={onNotificationsClick ?? (() => {})} />

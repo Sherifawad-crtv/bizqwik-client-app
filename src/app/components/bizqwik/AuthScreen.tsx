@@ -72,7 +72,7 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col px-6 pt-16 pb-10">
+    <div className="min-h-full bg-white flex flex-col px-6 pt-16 pb-10">
       <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         {logo ? (
           <img src={logo} alt={appName} className="w-16 h-16 rounded-[1.25rem] object-cover mb-6 shadow-[var(--glow-primary)]" />
