@@ -119,6 +119,7 @@ function App() {
           userName={auth.client.name.split(" ")[0]}
           onWalletClick={() => setStep("wallet")}
           onPointsClick={() => setStep("rewards")}
+          onPlanClick={() => setStep("membership")}
           onNotificationsClick={() => {}}
           notificationCount={0}
         />

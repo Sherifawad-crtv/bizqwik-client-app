@@ -20,9 +20,10 @@ test("member: intro -> sign in -> home -> book -> bookings -> wallet", async ({ 
 
   // Home renders with the member's first name + live wallet/points tiles.
   await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
-  await expect(page.getByText("6800 EGP")).toBeVisible();
-  await expect(page.getByText("Package · 5/6 sessions left")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Upcoming classes" })).toBeVisible();
+  await expect(page.getByText("6,800 EGP")).toBeVisible();
+  await expect(page.getByText("PT package")).toBeVisible();
+  await expect(page.getByText(/5 of 6 sessions left/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Classes" })).toBeVisible();
   await expect(page.getByText("Morning HIIT")).toBeVisible();
 
   // Open the booking sheet and pay from wallet.

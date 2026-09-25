@@ -41,7 +41,7 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
       </div>
 
       <div className="px-6 mt-8 flex flex-col gap-2">
-        <MenuItem icon={<Award className="w-5 h-5" />} label="Membership" onClick={onMembershipClick} />
+        <MenuItem icon={<Award className="w-5 h-5" />} label="My plan" onClick={onMembershipClick} />
         <MenuItem icon={<Wallet className="w-5 h-5" />} label="Wallet" onClick={onWalletClick} />
         <MenuItem icon={<Gift className="w-5 h-5" />} label="Points" onClick={onRewardsClick} />
       </div>

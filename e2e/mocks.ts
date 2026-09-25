@@ -24,18 +24,35 @@ function json(route: Route, body: unknown, status = 200) {
 // Mock data mirroring the /client/* backend shapes (see src/lib/api.ts).
 export const MEMBER = { id: "client-zz", orgId: "org-revolt", name: "Zara Halim", phone: null, email: "zara@zztest.dev" };
 
+// Class times relative to now so they always land in the Home day strip.
+const inHours = (h: number) => new Date(Date.now() + h * 3600_000).toISOString();
+
+export const CLASSES = [
+  { id: "cls-1", seriesId: "s-hiit", title: "Morning HIIT", description: "45 min conditioning", startsAt: inHours(3), price: 150, status: "active", booked: false, coverage: "drop_in" },
+];
+
 const HOME = {
   name: "Zara",
   membership: null,
-  package: { id: "pkg-1", sessionsRemaining: 5, sessionsIncluded: 6, expiryDate: "Oct 8, 2026", status: "active" },
+  package: { id: "pkg-1", sessionsRemaining: 5, sessionsIncluded: 6, expiryDate: "2026-10-08", status: "active" },
+  groupPlan: null,
   eligible: true,
   wallet: 6800,
   points: 12,
   pointsValueEgp: 12,
-  upcomingClasses: [
-    { id: "cls-1", title: "Morning HIIT", description: "45 min conditioning", startsAt: "2026-09-25T08:00:00Z", price: 150, status: "active", booked: false },
-  ],
+  upcomingClasses: CLASSES,
 };
+
+export const BUNDLE_PLAN = {
+  id: "gp-1", kind: "bundle", name: "10-Class Pack", priceAtSale: 1800, creditsTotal: 10, creditsRemaining: 7, invitationsRemaining: 0,
+  startsAt: inHours(-120), expiresAt: inHours(24 * 50), status: "active",
+};
+
+export const OFFERS = [
+  { offerType: "plan_type", id: "pt-all", kind: "membership", name: "All-Access · 1 Month", price: 4000, durationMonths: 1, credits: null },
+  { offerType: "plan_type", id: "pt-10", kind: "bundle", name: "10-Class Pack", price: 1800, durationMonths: 2, credits: 10 },
+  { offerType: "series", id: "s-hiit", kind: "class_monthly", name: "Morning HIIT · Monthly", price: 1200, durationMonths: 1, credits: null },
+];
 
 const BOOKINGS = {
   bookings: [
@@ -58,9 +75,18 @@ const BRANDING = {
   branding: { appName: "Revolt", logoUrl: null, iconUrl: null, primaryColor: "#5A41FF", onboardingAssets: [] },
 };
 
+export interface MockOptions {
+  home?: Partial<typeof HOME> & Record<string, unknown>;
+  classes?: unknown[];
+  plans?: Record<string, unknown>;
+  // Return { status, body } to answer a booking or plan purchase yourself.
+  onBook?: (body: Record<string, unknown>) => { status?: number; body: unknown };
+  onBuy?: (body: Record<string, unknown>) => { status?: number; body: unknown };
+}
+
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
 // runs fully offline. Returns nothing; call before page.goto.
-export async function mockBackend(page: Page) {
+export async function mockBackend(page: Page, opts: MockOptions = {}) {
   // Kill remote images (Unsplash intro art) so nothing hits the network.
   await page.route(/images\.unsplash\.com|unsplash\.com/, (r) => r.abort());
 
@@ -84,12 +110,33 @@ export async function mockBackend(page: Page) {
     const path = new URL(route.request().url()).pathname;
     if (path.includes("/client/branding")) return json(route, BRANDING);
     if (path.endsWith("/me")) return json(route, { client: MEMBER });
-    if (path.endsWith("/client/home")) return json(route, HOME);
+    const body = () => {
+      try {
+        return (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
+      } catch {
+        return {};
+      }
+    };
+    if (path.endsWith("/client/home")) return json(route, { ...HOME, ...(opts.home ?? {}) });
+    if (path.endsWith("/client/plans")) return json(route, { activePlan: null, history: [], wallet: 6800, canBuy: true, offers: OFFERS, ...(opts.plans ?? {}) });
+    if (path.endsWith("/client/plans/buy")) {
+      if (opts.onBuy) {
+        const r = opts.onBuy(body());
+        return json(route, r.body, r.status ?? 200);
+      }
+      return json(route, { plan: BUNDLE_PLAN, wallet: 5000 });
+    }
     if (path.endsWith("/client/bookings")) return json(route, BOOKINGS);
     if (path.endsWith("/client/wallet")) return json(route, WALLET);
     if (path.endsWith("/client/points")) return json(route, POINTS);
-    if (path.endsWith("/client/classes")) return json(route, { classes: HOME.upcomingClasses });
-    if (path.includes("/book")) return json(route, { booking: { ...BOOKINGS.bookings[0], id: "bk-new" } });
+    if (path.endsWith("/client/classes")) return json(route, { activePlan: (opts.home?.groupPlan as unknown) ?? null, classes: opts.classes ?? CLASSES });
+    if (path.includes("/book")) {
+      if (opts.onBook) {
+        const r = opts.onBook(body());
+        return json(route, r.body, r.status ?? 200);
+      }
+      return json(route, { booking: { ...BOOKINGS.bookings[0], id: "bk-new" } });
+    }
     return json(route, {});
   });
 }

@@ -49,7 +49,13 @@ export function MyBookings() {
     setBusy(true);
     try {
       const res = await api.cancelBooking(cancelling.id);
-      toast.success(res.refundedToWallet > 0 ? `Cancelled — ${Math.round(res.refundedToWallet)} EGP back to your wallet` : "Booking cancelled");
+      toast.success(
+        res.refundedToWallet > 0
+          ? `Cancelled — ${Math.round(res.refundedToWallet)} EGP back to your wallet`
+          : res.planCreditReturned
+            ? "Cancelled — your plan spot is freed (bundle credits come back)"
+            : "Booking cancelled",
+      );
       setCancelling(null);
       load();
     } catch (e) {
@@ -85,9 +91,11 @@ export function MyBookings() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
             <AlertDialogDescription>
-              {cancelling?.payStatus === "paid" && cancelling?.payMethod === "wallet"
-                ? "Your payment will be refunded to your wallet."
-                : "This will free up your spot."}
+              {cancelling?.coverage === "plan"
+                ? "This class is on your plan. Cancelling frees your spot, and if it used a bundle credit you get it back."
+                : cancelling?.payStatus === "paid" && cancelling?.payMethod === "wallet"
+                  ? "Your payment will be refunded to your wallet."
+                  : "This will free up your spot."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -109,7 +117,11 @@ function Row({ b, onCancel }: { b: Booking; onCancel?: () => void }) {
           <div className="text-[var(--bq-text-primary)] font-display text-[17px] truncate">{b.classTitle ?? "Class"}</div>
           <div className="flex items-center gap-1.5 text-[var(--bq-text-secondary)] text-sm mt-1"><CalendarIcon className="w-3.5 h-3.5" /> {whenLabel(b.classStartsAt)}</div>
           <div className="text-[var(--bq-text-tertiary)] text-xs mt-1">
-            {b.price > 0 ? `${Math.round(b.price)} EGP · ${b.payStatus === "paid" ? "Paid" : b.payStatus === "refunded" ? "Refunded" : "Pay at desk"}` : "Free"}
+            {b.coverage === "plan"
+              ? "On your plan"
+              : b.price > 0
+                ? `Drop-in · ${Math.round(b.price)} EGP · ${b.payStatus === "paid" ? "Paid" : b.payStatus === "refunded" ? "Refunded" : "Pay at desk"}`
+                : "Free"}
           </div>
         </div>
         <span className={`flex-none text-xs px-2.5 py-1 rounded-full ${att.cls}`}>{att.label}</span>
