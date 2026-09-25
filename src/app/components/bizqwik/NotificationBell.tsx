@@ -15,7 +15,7 @@ export function NotificationBell({ count = 0, onClick }: NotificationBellProps) 
       whileTap={{ scale: 0.95 }}
       className="relative w-10 h-10 rounded-xl bg-[var(--bq-secondary)] hover:bg-[var(--bq-neutral-dark)] flex items-center justify-center transition-colors duration-[var(--transition-base)]"
     >
-      <Bell className={`w-5 h-5 ${hasNotifications ? "text-[var(--bq-primary)]" : "text-[var(--bq-text-primary)]"}`} />
+      <Bell className={`w-5 h-5 ${hasNotifications ? "text-[var(--bq-primary-readable)]" : "text-[var(--bq-text-primary)]"}`} />
       
       <AnimatePresence>
         {hasNotifications && (

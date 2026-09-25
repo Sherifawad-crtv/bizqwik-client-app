@@ -32,7 +32,7 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
       </div>
 
       <div className="px-6 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-accent)] text-white flex items-center justify-center font-display text-[22px]">{initials || "M"}</div>
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-accent)] text-[var(--bq-on-primary)] flex items-center justify-center font-display text-[22px]">{initials || "M"}</div>
         <div className="min-w-0">
           <div className="font-display text-[20px] text-[var(--bq-text-primary)] truncate">{name}</div>
           <div className="text-[var(--bq-text-secondary)] text-sm truncate">{client?.email ?? client?.phone ?? gym}</div>
@@ -58,7 +58,7 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
 function MenuItem({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
   return (
     <button onClick={onClick} className="w-full flex items-center gap-3 p-4 rounded-[1.25rem] bg-[var(--bq-neutral)] active:scale-[0.98] transition-transform">
-      <span className="w-10 h-10 rounded-xl bg-white text-[var(--bq-primary)] flex items-center justify-center">{icon}</span>
+      <span className="w-10 h-10 rounded-xl bg-white text-[var(--bq-primary-readable)] flex items-center justify-center">{icon}</span>
       <span className="flex-1 text-left text-[var(--bq-text-primary)]">{label}</span>
       <ChevronRight className="w-5 h-5 text-[var(--bq-text-tertiary)]" />
     </button>

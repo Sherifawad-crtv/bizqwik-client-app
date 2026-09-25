@@ -17,7 +17,7 @@ export function Fab({ onClick, size = 60 }: { onClick: () => void; size?: number
         borderRadius: 999,
         border: 0,
         background: "var(--bq-primary)",
-        color: "#fff",
+        color: "var(--bq-on-primary)",
         boxShadow: "var(--glow-primary), 0 10px 24px rgba(0,0,0,.18)",
       }}
     >

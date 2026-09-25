@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { api, type Booking } from "../../../lib/api";
 
 const ATT_LABEL: Record<string, { label: string; cls: string }> = {
-  booked: { label: "Booked", cls: "bg-[var(--bq-primary)]/10 text-[var(--bq-primary)]" },
+  booked: { label: "Booked", cls: "bg-[var(--bq-primary)]/10 text-[var(--bq-primary-readable)]" },
   arrived: { label: "Attended", cls: "bg-emerald-50 text-emerald-600" },
   no_show: { label: "Missed", cls: "bg-[var(--bq-neutral)] text-[var(--bq-text-secondary)]" },
   cancelled: { label: "Cancelled", cls: "bg-[var(--bq-neutral)] text-[var(--bq-text-tertiary)]" },

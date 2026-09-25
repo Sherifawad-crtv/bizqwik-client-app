@@ -57,7 +57,7 @@ export function NewPasswordScreen() {
         <button
           type="submit"
           disabled={busy}
-          className="h-14 bg-[var(--bq-primary)] text-white rounded-[1.25rem] transition-all duration-200 hover:bg-[var(--bq-primary-dark)] active:scale-[0.98] shadow-[var(--glow-primary)] disabled:opacity-50 flex items-center justify-center"
+          className="h-14 bg-[var(--bq-primary)] text-[var(--bq-on-primary)] rounded-[1.25rem] transition-all duration-200 hover:bg-[var(--bq-primary-dark)] active:scale-[0.98] shadow-[var(--glow-primary)] disabled:opacity-50 flex items-center justify-center"
         >
           {busy ? "Saving…" : "Save password"}
         </button>

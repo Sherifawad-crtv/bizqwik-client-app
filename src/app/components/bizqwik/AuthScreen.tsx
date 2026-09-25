@@ -78,7 +78,7 @@ export function AuthScreen() {
           <img src={logo} alt={appName} className="w-16 h-16 rounded-[1.25rem] object-cover mb-6 shadow-[var(--glow-primary)]" />
         ) : (
           <div className="w-16 h-16 rounded-[1.25rem] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-accent)] flex items-center justify-center mb-6 shadow-[var(--glow-primary)]">
-            <span className="text-white text-2xl">{appName.charAt(0).toUpperCase()}</span>
+            <span className="text-[var(--bq-on-primary)] text-2xl">{appName.charAt(0).toUpperCase()}</span>
           </div>
         )}
         <h1 className="font-display text-[32px] leading-tight tracking-tight text-[var(--bq-text-primary)] mb-2">
@@ -110,7 +110,7 @@ export function AuthScreen() {
             )}
 
             {mode === "signin" && (
-              <button type="button" onClick={() => go("reset")} className="text-[var(--bq-primary)] text-sm text-right -mt-1">
+              <button type="button" onClick={() => go("reset")} className="text-[var(--bq-primary-readable)] text-sm text-right -mt-1">
                 Forgot password?
               </button>
             )}
@@ -124,7 +124,7 @@ export function AuthScreen() {
             <button
               type="submit"
               disabled={busy}
-              className="h-14 bg-[var(--bq-primary)] text-white rounded-[1.25rem] transition-all duration-200 hover:bg-[var(--bq-primary-dark)] active:scale-[0.98] shadow-[var(--glow-primary)] disabled:opacity-50 flex items-center justify-center"
+              className="h-14 bg-[var(--bq-primary)] text-[var(--bq-on-primary)] rounded-[1.25rem] transition-all duration-200 hover:bg-[var(--bq-primary-dark)] active:scale-[0.98] shadow-[var(--glow-primary)] disabled:opacity-50 flex items-center justify-center"
             >
               {busy ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "reset" ? "Send reset link" : "Create account"}
             </button>

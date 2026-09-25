@@ -49,7 +49,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
                 transition={{ type: "spring", stiffness: 500, damping: 32 }}
               />
             )}
-            <span className="relative" style={{ color: isActive ? "var(--bq-primary)" : "var(--bq-text-tertiary)" }}>
+            <span className="relative" style={{ color: isActive ? "var(--bq-primary-readable)" : "var(--bq-text-tertiary)" }}>
               <Icon name={item.icon} size={22} solid={isActive} />
             </span>
           </button>

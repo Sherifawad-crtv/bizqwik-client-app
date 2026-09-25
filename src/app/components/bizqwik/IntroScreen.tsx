@@ -117,7 +117,7 @@ export function IntroScreen({ currentSlide, onSlideChange, onComplete }: IntroSc
         {/* Next/Get Started Button */}
         <button
           onClick={handleNext}
-          className="w-full h-14 bg-[var(--bq-primary)] text-white rounded-[1.25rem] transition-all duration-[var(--transition-base)] hover:bg-[var(--bq-primary-dark)] active:scale-[0.98] shadow-[var(--glow-primary)] flex items-center justify-center"
+          className="w-full h-14 bg-[var(--bq-primary)] text-[var(--bq-on-primary)] rounded-[1.25rem] transition-all duration-[var(--transition-base)] hover:bg-[var(--bq-primary-dark)] active:scale-[0.98] shadow-[var(--glow-primary)] flex items-center justify-center"
           style={{ minHeight: '48px' }}
         >
           {isLastSlide ? "Get Started" : "Next"}

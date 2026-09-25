@@ -40,16 +40,16 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
         <div className="px-6">
           {membership || pkg ? (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-[1.5rem] p-6 text-white bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
-              <div className="flex items-center gap-2 text-white/85 text-sm"><ShieldCheck className="w-4 h-4" /> Active</div>
+              className="rounded-[1.5rem] p-6 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
+              <div className="flex items-center gap-2 text-[var(--bq-on-primary)]/85 text-sm"><ShieldCheck className="w-4 h-4" /> Active</div>
               <div className="font-display text-[26px] mt-2">{membership ? "Membership" : "Session package"}</div>
               {membership && (
-                <div className="flex items-center gap-2 text-white/80 text-sm mt-3"><CalendarClock className="w-4 h-4" /> Valid until {membership.expiryDate}</div>
+                <div className="flex items-center gap-2 text-[var(--bq-on-primary)]/80 text-sm mt-3"><CalendarClock className="w-4 h-4" /> Valid until {membership.expiryDate}</div>
               )}
               {pkg && (
                 <>
-                  <div className="flex items-center gap-2 text-white/80 text-sm mt-3"><Dumbbell className="w-4 h-4" /> {pkg.sessionsRemaining} of {pkg.sessionsIncluded} sessions left</div>
-                  <div className="flex items-center gap-2 text-white/80 text-sm mt-1.5"><CalendarClock className="w-4 h-4" /> Expires {pkg.expiryDate}</div>
+                  <div className="flex items-center gap-2 text-[var(--bq-on-primary)]/80 text-sm mt-3"><Dumbbell className="w-4 h-4" /> {pkg.sessionsRemaining} of {pkg.sessionsIncluded} sessions left</div>
+                  <div className="flex items-center gap-2 text-[var(--bq-on-primary)]/80 text-sm mt-1.5"><CalendarClock className="w-4 h-4" /> Expires {pkg.expiryDate}</div>
                 </>
               )}
             </motion.div>

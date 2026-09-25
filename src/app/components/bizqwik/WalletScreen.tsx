@@ -49,10 +49,10 @@ export function WalletScreen({ onNotificationsClick, notificationCount, onBack }
 
       <div className="px-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-[1.5rem] p-6 text-white bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
-          <div className="text-white/80 text-sm">Store credit</div>
+          className="rounded-[1.5rem] p-6 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
+          <div className="text-[var(--bq-on-primary)]/80 text-sm">Store credit</div>
           <div className="font-display text-[38px] leading-tight mt-1">{data ? Math.round(data.balance) : "—"} <span className="text-[20px]">EGP</span></div>
-          <div className="text-white/70 text-xs mt-2">Earned from refunds & compensation · spend it on classes or at the desk</div>
+          <div className="text-[var(--bq-on-primary)]/70 text-xs mt-2">Earned from refunds & compensation · spend it on classes or at the desk</div>
         </motion.div>
       </div>
 

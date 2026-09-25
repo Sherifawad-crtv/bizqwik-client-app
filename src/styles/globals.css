@@ -10,6 +10,11 @@
   --bq-primary: #5A41FF;
   --bq-primary-light: #7C67FF;
   --bq-primary-dark: #3D27CC;
+  /* WCAG-safe derivatives of --bq-primary, recomputed per org's brand color
+     in lib/branding.tsx (ensureReadableOnWhite / pickOnColor). These defaults
+     match the default purple above; every branded gym gets its own values. */
+  --bq-on-primary: #ffffff;
+  --bq-primary-readable: #5A41FF;
   --bq-accent: #FFB547;
   --bq-accent-light: #FFC870;
   --bq-secondary: #F5F6F7;

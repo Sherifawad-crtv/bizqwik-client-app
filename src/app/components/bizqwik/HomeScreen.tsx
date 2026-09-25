@@ -61,7 +61,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onNotificat
       {/* Wallet + points */}
       <div className="px-6 grid grid-cols-2 gap-3">
         <button onClick={onWalletClick} className="text-left p-4 rounded-[1.25rem] bg-[var(--bq-neutral)] active:scale-[0.98] transition-transform">
-          <div className="w-9 h-9 rounded-xl bg-[var(--bq-primary)]/10 text-[var(--bq-primary)] flex items-center justify-center mb-3"><Wallet className="w-5 h-5" /></div>
+          <div className="w-9 h-9 rounded-xl bg-[var(--bq-primary)]/10 text-[var(--bq-primary-readable)] flex items-center justify-center mb-3"><Wallet className="w-5 h-5" /></div>
           <div className="text-[var(--bq-text-secondary)] text-xs">Wallet</div>
           <div className="text-[var(--bq-text-primary)] text-[20px] font-display">{data ? `${Math.round(data.wallet)} EGP` : "—"}</div>
         </button>
@@ -101,7 +101,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onNotificat
                 {c.booked ? (
                   <div className="h-11 rounded-[1rem] bg-[var(--bq-neutral)] text-[var(--bq-text-secondary)] flex items-center justify-center text-sm">Booked ✓</div>
                 ) : (
-                  <button onClick={() => setBooking(c)} className="w-full h-11 rounded-[1rem] bg-[var(--bq-primary)] text-white active:scale-[0.98] transition-transform flex items-center justify-center gap-1">
+                  <button onClick={() => setBooking(c)} className="w-full h-11 rounded-[1rem] bg-[var(--bq-primary)] text-[var(--bq-on-primary)] active:scale-[0.98] transition-transform flex items-center justify-center gap-1">
                     Book <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
@@ -152,12 +152,12 @@ function BookingSheet({ cls, walletBalance, onClose, onBooked }: { cls: GymClass
         <div className="text-[var(--bq-text-primary)] font-display text-[22px] mb-5">{free ? "Free" : `${Math.round(cls.price)} EGP`}</div>
 
         {free ? (
-          <button disabled={busy} onClick={() => book("desk")} className="w-full h-14 rounded-[1.25rem] bg-[var(--bq-primary)] text-white disabled:opacity-50 active:scale-[0.98] transition-transform">
+          <button disabled={busy} onClick={() => book("desk")} className="w-full h-14 rounded-[1.25rem] bg-[var(--bq-primary)] text-[var(--bq-on-primary)] disabled:opacity-50 active:scale-[0.98] transition-transform">
             {busy ? "Booking…" : "Book class"}
           </button>
         ) : (
           <div className="flex flex-col gap-3">
-            <button disabled={busy || !canWallet} onClick={() => book("wallet")} className="w-full h-14 rounded-[1.25rem] bg-[var(--bq-primary)] text-white disabled:opacity-40 active:scale-[0.98] transition-transform flex flex-col items-center justify-center">
+            <button disabled={busy || !canWallet} onClick={() => book("wallet")} className="w-full h-14 rounded-[1.25rem] bg-[var(--bq-primary)] text-[var(--bq-on-primary)] disabled:opacity-40 active:scale-[0.98] transition-transform flex flex-col items-center justify-center">
               <span>Pay from wallet</span>
               <span className="text-xs opacity-80">Balance {Math.round(walletBalance)} EGP{!canWallet ? " — not enough" : ""}</span>
             </button>
