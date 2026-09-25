@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { IntroScreen } from "./components/bizqwik/IntroScreen";
 import { AuthScreen } from "./components/bizqwik/AuthScreen";
 import { NewPasswordScreen } from "./components/bizqwik/NewPasswordScreen";
@@ -9,9 +10,12 @@ import { MembershipScreen } from "./components/bizqwik/MembershipScreen";
 import { RewardsScreen } from "./components/bizqwik/RewardsScreen";
 import { ProfileScreen } from "./components/bizqwik/ProfileScreen";
 import { BottomNav } from "./components/bizqwik/BottomNav";
+import { Fab } from "./components/bizqwik/Fab";
+import { QRScannerScreen } from "./components/bizqwik/QRScannerScreen";
 import { Toaster } from "./components/ui/sonner";
 import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
+import { api } from "../lib/api";
 
 type Step = "home" | "bookings" | "wallet" | "membership" | "rewards" | "profile";
 type NavItem = "home" | "bookings" | "profile";
@@ -43,6 +47,9 @@ function App() {
   const [introDone, setIntroDone] = useState(false);
   const [step, setStep] = useState<Step>("home");
   const [previousStep, setPreviousStep] = useState<Step | null>(null);
+  // Global check-in scanner — reachable from the FAB on every tab, not just
+  // from inside Bookings, so a member never has to navigate to check in.
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (auth.client) setStep("home");
@@ -87,6 +94,16 @@ function App() {
 
   const backToProfile = () => { setPreviousStep(null); setStep("profile"); };
 
+  const onScan = async (code: string) => {
+    setScanning(false);
+    try {
+      await api.checkIn(code.trim());
+      toast.success("Checked in — enjoy your session! 💪");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Check-in failed.");
+    }
+  };
+
   return (
     <Shell>
       {step === "home" && (
@@ -121,10 +138,18 @@ function App() {
         />
       )}
 
-      <BottomNav
-        active={(["home", "bookings", "profile"].includes(step) ? step : "profile") as NavItem}
-        onNavigate={(item: NavItem) => setStep(item)}
-      />
+      <div
+        className="fixed left-0 right-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4"
+        style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+      >
+        <BottomNav
+          active={(["home", "bookings", "profile"].includes(step) ? step : "profile") as NavItem}
+          onNavigate={(item: NavItem) => setStep(item)}
+        />
+        <Fab onClick={() => setScanning(true)} />
+      </div>
+
+      {scanning && <QRScannerScreen onClose={() => setScanning(false)} onScanSuccess={onScan} />}
     </Shell>
   );
 }

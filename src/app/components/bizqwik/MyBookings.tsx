@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Calendar as CalendarIcon, QrCode, X } from "lucide-react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +11,6 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { toast } from "sonner";
-import { QRScannerScreen } from "./QRScannerScreen";
 import { api, type Booking } from "../../../lib/api";
 
 const ATT_LABEL: Record<string, { label: string; cls: string }> = {
@@ -36,7 +35,6 @@ export function MyBookings() {
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<Booking | null>(null);
   const [busy, setBusy] = useState(false);
-  const [scanning, setScanning] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -61,29 +59,13 @@ export function MyBookings() {
     }
   };
 
-  const onScan = async (code: string) => {
-    setScanning(false);
-    try {
-      await api.checkIn(code.trim());
-      toast.success("Checked in — enjoy your session! 💪");
-      load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Check-in failed.");
-    }
-  };
-
   const upcoming = bookings.filter((b) => b.attendance === "booked");
   const past = bookings.filter((b) => b.attendance !== "booked");
 
-  if (scanning) return <QRScannerScreen onClose={() => setScanning(false)} onScanSuccess={onScan} />;
-
   return (
     <div className="min-h-screen bg-white pb-28">
-      <div className="px-6 pt-14 pb-4 flex items-center justify-between">
+      <div className="px-6 pt-14 pb-4">
         <h1 className="font-display text-[24px] text-[var(--bq-text-primary)]">My bookings</h1>
-        <button onClick={() => setScanning(true)} className="h-10 px-4 rounded-xl bg-[var(--bq-primary)] text-white flex items-center gap-2 text-sm active:scale-[0.98] transition-transform">
-          <QrCode className="w-4 h-4" /> Check in
-        </button>
       </div>
 
       {loading && <div className="py-10 flex justify-center"><div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" /></div>}

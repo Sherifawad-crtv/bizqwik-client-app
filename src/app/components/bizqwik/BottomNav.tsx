@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Home, Calendar, User } from "lucide-react";
+import { Icon, type IconName } from "./Icon";
 
 type NavItem = "home" | "bookings" | "profile";
 
@@ -8,74 +8,53 @@ interface BottomNavProps {
   onNavigate: (item: NavItem) => void;
 }
 
-const navItems = [
-  {
-    id: "home" as NavItem,
-    label: "Home",
-    icon: Home,
-  },
-  {
-    id: "bookings" as NavItem,
-    label: "Bookings",
-    icon: Calendar,
-  },
-  {
-    id: "profile" as NavItem,
-    label: "Profile",
-    icon: User,
-  },
+const navItems: { id: NavItem; label: string; icon: IconName }[] = [
+  { id: "home", label: "Home", icon: "home" },
+  { id: "bookings", label: "Bookings", icon: "calendar" },
+  { id: "profile", label: "Profile", icon: "account" },
 ];
 
+const ITEM = 52;
+
+// Floating frosted-glass pill, matching the business app's BottomNav
+// language (blur + translucency, a sliding pill behind the active tab,
+// solid-vs-linear icon swap) — but themed by the org's brand color via the
+// --bq-* CSS vars branding.tsx sets per gym, not a fixed brand.
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[var(--bq-neutral-dark)] px-2 pb-safe">
-      <div className="mx-auto max-w-[430px]">
-        <div className="flex items-center justify-around h-16">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = active === item.id;
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all duration-[var(--transition-base)] active:scale-95"
-                style={{ minHeight: "48px", minWidth: "48px" }}
-              >
-                <div className="relative">
-                  <Icon
-                    className={`w-5 h-5 transition-colors duration-[var(--transition-fast)] ${
-                      isActive
-                        ? "text-[var(--bq-primary)]"
-                        : "text-[var(--bq-text-tertiary)]"
-                    }`}
-                  />
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[var(--bq-primary)] rounded-full"
-                      transition={{
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                </div>
-                <span
-                  className={`text-xs transition-colors duration-[var(--transition-fast)] ${
-                    isActive
-                      ? "text-[var(--bq-primary)]"
-                      : "text-[var(--bq-text-tertiary)]"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div
+      className="flex items-center gap-1.5 h-16 px-1.5 rounded-full backdrop-blur-2xl backdrop-saturate-150"
+      style={{
+        background: "rgba(255,255,255,.55)",
+        border: "1px solid rgba(255,255,255,.6)",
+        boxShadow: "0 12px 30px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.7)",
+      }}
+    >
+      {navItems.map((item) => {
+        const isActive = active === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            aria-label={item.label}
+            title={item.label}
+            className="relative flex-none flex items-center justify-center active:scale-95 transition-transform"
+            style={{ width: ITEM, height: ITEM }}
+          >
+            {isActive && (
+              <motion.span
+                layoutId="bq-bottom-nav-active"
+                className="absolute inset-0 rounded-full"
+                style={{ background: "var(--bq-primary)", opacity: 0.12 }}
+                transition={{ type: "spring", stiffness: 500, damping: 32 }}
+              />
+            )}
+            <span className="relative" style={{ color: isActive ? "var(--bq-primary)" : "var(--bq-text-tertiary)" }}>
+              <Icon name={item.icon} size={22} solid={isActive} />
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mockBackend } from "./mocks";
 
-// The scanner needs a signed-in member on the Bookings screen, where the
-// "Check in" button lives (see MyBookings.tsx).
-async function goToBookings(page: Page) {
+// The scanner is opened via the global FAB (App.tsx), reachable from any tab
+// — signing in and landing on Home is enough.
+async function signIn(page: Page) {
   await mockBackend(page);
   await page.goto("/?gym=revolt");
   await page.getByRole("button", { name: "Skip" }).click();
@@ -11,8 +11,6 @@ async function goToBookings(page: Page) {
   await page.locator('input[type="password"]').fill("ZZpass123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
-  await page.getByRole("button", { name: "Bookings" }).click();
-  await expect(page.getByRole("heading", { name: "My bookings" })).toBeVisible();
 }
 
 // Exercises the REAL getUserMedia + <video> rendering path (no mock) against
@@ -21,9 +19,9 @@ async function goToBookings(page: Page) {
 // the frame renders without the double-overlay bug — a network mock alone
 // can't touch this code path.
 test("QR scanner: opens the camera and renders a live frame (fake device)", async ({ page }) => {
-  await goToBookings(page);
+  await signIn(page);
 
-  await page.getByRole("button", { name: "Check in" }).click();
+  await page.getByRole("button", { name: "Scan to check in" }).click();
   await expect(page.getByRole("heading", { name: "Scan QR Code" })).toBeVisible();
 
   // No error banner — the camera started successfully.
@@ -56,10 +54,19 @@ test("QR scanner: camera permission denied shows an actionable error", async ({ 
       Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
   });
 
-  await goToBookings(page);
-  await page.getByRole("button", { name: "Check in" }).click();
+  await signIn(page);
+  await page.getByRole("button", { name: "Scan to check in" }).click();
 
   await expect(page.getByText("Camera unavailable")).toBeVisible();
   await expect(page.getByText(/Website Settings.*Camera.*Allow/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
+});
+
+// The FAB is reachable from Home directly — no need to navigate to Bookings
+// first. That's the whole point of moving it out of MyBookings.
+test("QR scanner: reachable from Home without navigating to Bookings", async ({ page }) => {
+  await signIn(page);
+  await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
+  await page.getByRole("button", { name: "Scan to check in" }).click();
+  await expect(page.getByRole("heading", { name: "Scan QR Code" })).toBeVisible();
 });
