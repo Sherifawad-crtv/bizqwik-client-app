@@ -66,9 +66,17 @@ const WALLET = {
     { id: "wt-1", type: "credit", amount: 10000, category: "compensation", description: "Welcome credit", createdAt: "2026-09-24T09:00:00Z" },
     { id: "wt-2", type: "debit", amount: 3200, category: "desk_sale", description: "Package purchase", createdAt: "2026-09-24T09:30:00Z" },
   ],
+  activity: [
+    { id: "plan-1", kind: "purchase", title: "Sunrise HIIT · Monthly", amount: 1500, method: "cash", walletDelta: 0, at: "2026-09-25T08:00:00Z" },
+    { id: "pkg-1", kind: "purchase", title: "PT · 8 Sessions", amount: 3200, method: "wallet", walletDelta: -3200, at: "2026-09-24T09:30:00Z" },
+    { id: "wt-1", kind: "credit", title: "Compensation", detail: "Welcome credit", amount: 10000, method: "wallet", walletDelta: 10000, at: "2026-09-24T09:00:00Z" },
+  ],
 };
 
-const POINTS = { total: 12, valueEgp: 12, rate: 1, ledger: [{ id: "pl-1", points: 12, reason: "checkin", createdAt: "2026-09-24T09:00:00Z" }] };
+const POINTS = {
+  enabled: true, total: 50, valueEgp: 0, rate: 500, earnRate: 10, checkinPoints: 50, minRedeem: 10000, nextExpiry: null,
+  ledger: [{ id: "pl-1", points: 50, reason: "checkin", createdAt: "2026-09-24T09:00:00Z" }],
+};
 
 const BRANDING = {
   org: { id: "org-revolt", name: "Revolt", slug: "revolt", status: "trial" },

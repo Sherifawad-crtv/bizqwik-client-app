@@ -89,9 +89,34 @@ export interface HomeData {
 export interface GymClass { id: string; seriesId?: string | null; title: string; description: string | null; startsAt: string; price: number; status: string; booked?: boolean; coverage?: "plan" | "drop_in" }
 export interface Booking { id: string; classId: string; payMethod: "wallet" | "desk" | "plan"; payStatus: string; attendance: string; price: number; bookedAt: string; classTitle: string | null; classStartsAt: string | null; coverage?: "plan" | "drop_in" }
 export interface WalletTx { id: string; type: string; amount: number; category: string; description: string | null; createdAt: string }
-export interface WalletData { balance: number; transactions: WalletTx[] }
+/** One line of the member's full money history with the gym: purchases (any
+ * tender), wallet credits, expiries and desk refunds. `walletDelta` is the
+ * change to the wallet balance — 0 for cash/card/desk. */
+export interface MoneyEvent {
+  id: string;
+  kind: "purchase" | "credit" | "expiry" | "refund";
+  title: string;
+  detail?: string | null;
+  amount: number;
+  method: "cash" | "card" | "wallet" | "desk";
+  walletDelta: number;
+  at: string;
+}
+export interface WalletData { balance: number; transactions: WalletTx[]; activity: MoneyEvent[] }
 export interface PointsLedgerRow { id: string; points: number; reason: string; createdAt: string }
-export interface PointsData { total: number; valueEgp: number; rate: number | null; ledger: PointsLedgerRow[] }
+/** `rate` = points per 1 EGP of wallet credit; `valueEgp` = whole EGP the
+ * balance redeems to now. `enabled` false = the gym has points off. */
+export interface PointsData {
+  enabled: boolean;
+  total: number;
+  valueEgp: number;
+  rate: number;
+  earnRate: number | null;
+  checkinPoints: number;
+  minRedeem: number;
+  nextExpiry: { points: number; at: string } | null;
+  ledger: PointsLedgerRow[];
+}
 
 export const api = {
   // public (pre-auth)
