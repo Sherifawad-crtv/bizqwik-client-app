@@ -3,6 +3,7 @@ import App from "./app/App.tsx";
 import { installNativeShell } from "./app/nativeShell.ts";
 import { BrandingProvider } from "./lib/branding";
 import { AuthProvider } from "./lib/auth";
+import { startAutoUpdate } from "./lib/autoUpdate";
 import "./styles/index.css";
 
 // The camera (QR check-in) only works on a secure, top-level page. If the app
@@ -39,6 +40,7 @@ async function ensureSecureTopLevel(): Promise<boolean> {
 
 void ensureSecureTopLevel().then((ok) => {
   if (!ok) return;
+  startAutoUpdate();
   installNativeShell();
   createRoot(document.getElementById("root")!).render(
     <BrandingProvider>
