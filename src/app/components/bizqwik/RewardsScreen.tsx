@@ -1,7 +1,8 @@
+import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { Star, ArrowLeft, Plus, Wallet, Clock } from "lucide-react";
+import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -136,7 +137,11 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
         {loading && <div className="py-10 flex justify-center"><div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" /></div>}
         {error && <div className="text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>{error}</div>}
         {!loading && !error && (data?.ledger.length ?? 0) === 0 && (
-          <div className="py-10 text-center text-[var(--bq-text-secondary)] text-sm">No points yet — check in to start earning.</div>
+          <EmptyState
+            icon={<Sparkles />}
+            title="No points yet"
+            body="You earn points every time you check in and on every cash or card purchase. They add up to wallet credit."
+          />
         )}
         <div className="flex flex-col gap-2">
           {data?.ledger.map((l) => {

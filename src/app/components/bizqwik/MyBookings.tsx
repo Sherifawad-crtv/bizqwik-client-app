@@ -1,5 +1,6 @@
+import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
-import { Calendar as CalendarIcon, X } from "lucide-react";
+import { Calendar as CalendarIcon, X, CalendarPlus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +30,7 @@ function whenLabel(iso: string | null): string {
   return `${date} · ${((h + 11) % 12) + 1}:${String(d.getMinutes()).padStart(2, "0")} ${am ? "AM" : "PM"}`;
 }
 
-export function MyBookings() {
+export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +78,12 @@ export function MyBookings() {
       {loading && <div className="py-10 flex justify-center"><div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" /></div>}
       {error && <div className="mx-6 text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>{error}</div>}
       {!loading && !error && bookings.length === 0 && (
-        <div className="py-16 text-center text-[var(--bq-text-secondary)] text-sm">No bookings yet — book a class from Home.</div>
+        <EmptyState
+          icon={<CalendarPlus />}
+          title="No bookings yet"
+          body="Book a class from Home and it shows up here, with the option to cancel before it starts."
+          action={onBrowse ? { label: "Browse classes", onClick: onBrowse } : undefined}
+        />
       )}
 
       <div className="px-6 flex flex-col gap-3">

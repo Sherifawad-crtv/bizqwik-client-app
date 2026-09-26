@@ -1,7 +1,8 @@
+import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { ShieldCheck, CalendarClock, Ticket, Lock } from "lucide-react";
+import { ShieldCheck, CalendarClock, Ticket, Lock, Tag } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,7 +116,9 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
           ) : (
             <div className="rounded-[1.5rem] p-6 bg-[var(--bq-neutral)] text-center">
               <div className="font-display text-[18px] text-[var(--bq-text-primary)] mb-1">No active plan</div>
-              <p className="text-[var(--bq-text-secondary)] text-sm">Pick one below, or drop in and pay per class.</p>
+              <p className="text-[var(--bq-text-secondary)] text-sm">
+                {plans.offers.length > 0 ? "Pick one below, or drop in and pay per class." : "You can still drop in and pay per class."}
+              </p>
             </div>
           )}
 
@@ -136,7 +139,9 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
             </div>
           )}
 
-          {plans.offers.length === 0 && <div className="py-8 text-center text-[var(--bq-text-secondary)] text-sm">Nothing on sale yet — check with the front desk.</div>}
+          {plans.offers.length === 0 && (
+            <EmptyState icon={<Tag />} title="Nothing on sale yet" body={`${gym} hasn't added plans to the app yet. Ask at the front desk — they can sign you up there.`} />
+          )}
 
           <div className="flex flex-col gap-3">
             {plans.offers.map((o) => {
