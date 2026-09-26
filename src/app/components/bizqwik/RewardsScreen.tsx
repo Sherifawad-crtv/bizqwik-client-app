@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { Star, ArrowLeft, Plus, Wallet } from "lucide-react";
+import { Star, ArrowLeft, Plus, Wallet, Clock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,16 +25,23 @@ const REASON_LABEL: Record<string, string> = {
   checkin: "Checked in",
   purchase: "Purchase",
   redeem: "Redeemed to wallet",
+  refund: "Refund — points returned",
+  expired: "Points expired",
 };
+
+const n = (v: number) => v.toLocaleString();
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
+function fmtDay(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
-// Points: balance, how it was earned, and redemption into wallet credit at the
-// gym's rate (whole EGP; leftover points stay). Wallet credit then pays for
-// plans, drop-ins and class bookings like any other store credit.
+// Points: a big balance with its (small) EGP value, progress to the gym's
+// redemption minimum, the next expiry, and redemption into wallet credit in
+// whole EGP (leftover points stay).
 export function RewardsScreen({ onNotificationsClick, notificationCount, onBack }: RewardsScreenProps) {
   const [data, setData] = useState<PointsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,15 +56,17 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
     load();
   }, [load]);
 
-  const rate = data?.rate && data.rate > 0 ? data.rate : null;
-  const redeemEgp = rate && data ? Math.floor(data.total / rate) : 0;
-  const redeemPoints = rate ? redeemEgp * rate : 0;
+  const on = !!data?.enabled;
+  const redeemEgp = data && on ? Math.floor(data.total / data.rate) : 0;
+  const redeemPoints = data ? redeemEgp * data.rate : 0;
+  const canRedeem = !!data && on && data.total >= data.minRedeem && redeemEgp >= 1;
+  const progress = data && data.minRedeem > 0 ? Math.min(1, data.total / data.minRedeem) : 1;
 
   const redeem = async () => {
     setBusy(true);
     try {
       const r = await api.redeemPoints();
-      toast.success(`${r.egpCredited.toLocaleString()} EGP added to your wallet 🎉`);
+      toast.success(`${n(r.egpCredited)} EGP added to your wallet 🎉`);
       setConfirming(false);
       load();
     } catch (e) {
@@ -84,22 +93,40 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
           className="rounded-[1.5rem] p-6 bg-[var(--bq-neutral)]">
           <div className="w-11 h-11 rounded-2xl bg-[var(--bq-accent)]/15 text-[var(--bq-accent)] flex items-center justify-center mb-3"><Star className="w-6 h-6" /></div>
           <div className="text-[var(--bq-text-secondary)] text-sm">Your points</div>
-          <div className="font-display text-[38px] leading-tight text-[var(--bq-text-primary)]">{data ? data.total.toLocaleString() : "—"}</div>
-          {rate && data && (
-            <div className="text-[var(--bq-text-secondary)] text-sm mt-1">Worth {redeemEgp.toLocaleString()} EGP · {rate} points = 1 EGP</div>
+          <div className="font-display text-[42px] leading-tight text-[var(--bq-text-primary)]">{data ? n(data.total) : "—"}</div>
+          {data && on && <div className="text-[var(--bq-text-secondary)] text-sm mt-1">worth {n(redeemEgp)} EGP</div>}
+
+          {data && on && data.minRedeem > 0 && data.total < data.minRedeem && (
+            <div className="mt-4">
+              <div className="h-2 rounded-full bg-[var(--bq-neutral-dark)] overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={data.minRedeem} aria-valuenow={data.total}>
+                <div className="h-full rounded-full bg-[var(--bq-accent)]" style={{ width: `${Math.round(progress * 100)}%` }} />
+              </div>
+              <div className="text-[var(--bq-text-secondary)] text-xs mt-2">
+                {n(data.total)} / {n(data.minRedeem)} points until you can redeem {n(Math.floor(data.minRedeem / data.rate))} EGP
+              </div>
+            </div>
           )}
-          {rate && data && (
+
+          {data && on && (
             <button
               onClick={() => setConfirming(true)}
-              disabled={redeemEgp < 1}
+              disabled={!canRedeem}
               className="mt-4 w-full h-12 rounded-[1rem] flex items-center justify-center gap-2 font-semibold bg-[var(--bq-primary)] text-[var(--bq-on-primary)] disabled:opacity-40"
             >
               <Wallet className="w-5 h-5" />
-              {redeemEgp < 1 ? `Collect ${rate} points to redeem` : `Redeem ${redeemEgp.toLocaleString()} EGP to wallet`}
+              {canRedeem ? `Redeem ${n(redeemEgp)} EGP to wallet` : `Redeem from ${n(data.minRedeem)} points`}
             </button>
           )}
+
+          {data && on && data.nextExpiry && (
+            <div className="flex items-center gap-1.5 text-[var(--bq-text-tertiary)] text-xs mt-3">
+              <Clock className="w-3.5 h-3.5" /> {n(data.nextExpiry.points)} points expire on {fmtDay(data.nextExpiry.at)}
+            </div>
+          )}
           <div className="text-[var(--bq-text-tertiary)] text-xs mt-3">
-            {rate ? "Earn on every check-in and desk purchase. Redeemed credit lands in your wallet — spend it on plans and classes." : "Earn on every check-in and desk purchase."}
+            {data && on
+              ? `Earn ${n(data.earnRate ?? 0)} points per EGP you spend and ${n(data.checkinPoints)} per check-in. ${n(data.rate)} points = 1 EGP of wallet credit.`
+              : "Points aren't running at your gym yet."}
           </div>
         </motion.div>
       </div>
@@ -123,7 +150,7 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
                   <div className="text-[var(--bq-text-primary)] text-sm">{REASON_LABEL[l.reason] ?? l.reason}</div>
                   <div className="text-[var(--bq-text-tertiary)] text-xs">{fmtDate(l.createdAt)}</div>
                 </div>
-                <div className={`font-display ${spent ? "text-[var(--bq-text-secondary)]" : "text-[var(--bq-accent)]"}`}>{spent ? `−${Math.abs(l.points).toLocaleString()}` : `+${l.points.toLocaleString()}`}</div>
+                <div className={`font-display ${spent ? "text-[var(--bq-text-secondary)]" : "text-[var(--bq-accent)]"}`}>{spent ? `−${n(Math.abs(l.points))}` : `+${n(l.points)}`}</div>
               </div>
             );
           })}
@@ -133,9 +160,9 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
       <AlertDialog open={confirming} onOpenChange={(o) => !o && !busy && setConfirming(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Redeem {redeemEgp.toLocaleString()} EGP?</AlertDialogTitle>
+            <AlertDialogTitle>Redeem {n(redeemEgp)} EGP?</AlertDialogTitle>
             <AlertDialogDescription>
-              {`${redeemPoints.toLocaleString()} points become ${redeemEgp.toLocaleString()} EGP in your wallet.${data && data.total - redeemPoints > 0 ? ` The other ${(data.total - redeemPoints).toLocaleString()} point${data.total - redeemPoints === 1 ? "" : "s"} stay for next time.` : ""}`}
+              {`${n(redeemPoints)} points become ${n(redeemEgp)} EGP in your wallet.${data && data.total - redeemPoints > 0 ? ` The other ${n(data.total - redeemPoints)} point${data.total - redeemPoints === 1 ? "" : "s"} stay for next time.` : ""}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

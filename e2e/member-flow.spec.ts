@@ -46,7 +46,14 @@ test("member: intro -> sign in -> home -> book -> bookings -> wallet", async ({ 
 
   await expect(page.getByRole("heading", { name: "Wallet" })).toBeVisible();
   await expect(page.getByText("Store credit")).toBeVisible();
-  await expect(page.getByText("Compensation")).toBeVisible();
+  // Full money history: cash purchases show too, not just wallet movements.
+  await expect(page.getByText("Compensation", { exact: true })).toBeVisible();
+  const rows = page.getByTestId("money-row");
+  await expect(rows.filter({ hasText: "Sunrise HIIT · Monthly" })).toContainText("Cash");
+  await expect(rows.filter({ hasText: "Sunrise HIIT · Monthly" })).toContainText("1,500 EGP");
+  await expect(rows.filter({ hasText: "Sunrise HIIT · Monthly" })).not.toContainText("−");
+  await expect(rows.filter({ hasText: "PT · 8 Sessions" })).toContainText("−3,200 EGP");
+  await expect(rows.filter({ hasText: "Compensation" })).toContainText("+10,000 EGP");
 });
 
 // Forgot-password: request a reset link from the sign-in screen.
