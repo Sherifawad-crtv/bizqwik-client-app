@@ -120,4 +120,8 @@ export const api = {
   checkIn: (token: string) => callFn<{ ok: true }>("client/check-in", { method: "POST", body: { token } }),
   wallet: () => callFn<WalletData>("client/wallet"),
   points: () => callFn<PointsData>("client/points"),
+  // Turns points into wallet credit at the gym's rate, in whole EGP. Omit
+  // `points` to redeem everything redeemable.
+  redeemPoints: (points?: number) =>
+    callFn<{ pointsSpent: number; egpCredited: number; points: number; wallet: number }>("client/points/redeem", { method: "POST", body: points ? { points } : {} }),
 };
