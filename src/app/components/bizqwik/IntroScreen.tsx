@@ -111,7 +111,8 @@ export function IntroScreen({ currentSlide, onSlideChange, onComplete }: IntroSc
 
         <button
           onClick={handleNext}
-          className="w-full h-14 bg-[var(--bq-primary)] text-[var(--bq-on-primary)] rounded-[1.25rem] transition-transform active:scale-[0.98] shadow-[var(--glow-primary)] flex items-center justify-center"
+          data-testid="intro-next"
+          className="w-full h-14 bg-[var(--bq-primary-on-dark)] text-[var(--bq-on-primary-on-dark)] rounded-[1.25rem] transition-transform active:scale-[0.98] shadow-[0_8px_24px_rgba(0,0,0,0.35)] flex items-center justify-center"
         >
           {isLastSlide ? "Get Started" : "Next"}
         </button>

@@ -87,3 +87,27 @@ test("onboarding welcomes the member to their gym by name", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Welcome to Revolt" })).toBeVisible();
   await expect(page.getByText(/Bizqwik/)).toHaveCount(0);
 });
+
+// The status bar follows the top of the screen like a native app: black over
+// the photo onboarding, the page color once past it.
+test("status bar color follows the screen", async ({ page }) => {
+  await mockBackend(page);
+  await page.goto("/?gym=revolt");
+  const theme = () => page.locator('meta[name="theme-color"]').getAttribute("content");
+  await expect.poll(theme).toBe("#000000");
+  await page.getByRole("button", { name: "Skip" }).click();
+  await expect.poll(theme).not.toBe("#000000");
+});
+
+// A brand too dark to see on the dark onboarding gets a white button instead.
+test("a dark brand color turns the onboarding button white", async ({ page }) => {
+  await mockBackend(page, { primaryColor: "#101820" });
+  await page.goto("/?gym=revolt");
+  await expect(page.getByTestId("intro-next")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+});
+
+test("a bright brand color keeps its own onboarding button", async ({ page }) => {
+  await mockBackend(page, { primaryColor: "#FF5A1F" });
+  await page.goto("/?gym=revolt");
+  await expect(page.getByTestId("intro-next")).toHaveCSS("background-color", "rgb(255, 90, 31)");
+});

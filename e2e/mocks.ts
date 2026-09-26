@@ -95,6 +95,8 @@ export interface MockOptions {
   onRedeem?: (body: Record<string, unknown>) => { status?: number; body: unknown };
   // Running PT bundles (each with its coach-scan code); none by default.
   pt?: unknown[];
+  // Brand color override (e.g. a very dark brand).
+  primaryColor?: string;
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -121,7 +123,7 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
   await page.route(/\/functions\/v1\/make-server-980e1cbf\//, (route) => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     const path = new URL(route.request().url()).pathname;
-    if (path.includes("/client/branding")) return json(route, BRANDING);
+    if (path.includes("/client/branding")) return json(route, opts.primaryColor ? { ...BRANDING, branding: { ...BRANDING.branding, primaryColor: opts.primaryColor } } : BRANDING);
     if (path.endsWith("/me")) return json(route, { client: MEMBER });
     const body = () => {
       try {

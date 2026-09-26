@@ -137,7 +137,11 @@ function applyTheme(b: Branding) {
     // and pickOnColor above for the actual WCAG math.
     root.style.setProperty("--bq-on-primary", pickOnColor(rgb));
     root.style.setProperty("--bq-primary-readable", ensureReadableOnWhite(rgb));
-    setMeta("theme-color", hex);
+    // On dark surfaces (the photo onboarding) a dark brand color would vanish:
+    // below 3:1 against black the button turns white instead.
+    const onDark: [number, number, number] = contrast(relLuminance(rgb), 0) >= 3 ? rgb : WHITE;
+    root.style.setProperty("--bq-primary-on-dark", toHex(onDark));
+    root.style.setProperty("--bq-on-primary-on-dark", pickOnColor(onDark));
   }
 
   const name = b.branding.appName || b.org.name;
@@ -160,7 +164,7 @@ function applyTheme(b: Branding) {
     scope: `${window.location.origin}/`,
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: rgb ? b.branding.primaryColor : "#5A41FF",
+    theme_color: "#ffffff",
     icons: icon ? [{ src: icon, sizes: "512x512", type: "image/png", purpose: "any maskable" }] : [],
   };
   const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });

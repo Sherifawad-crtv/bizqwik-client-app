@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
-import { installNativeShell } from "./app/nativeShell.ts";
+import { installNativeShell, installStatusBarSync } from "./app/nativeShell.ts";
 import { BrandingProvider } from "./lib/branding";
 import { AuthProvider } from "./lib/auth";
 import { startAutoUpdate } from "./lib/autoUpdate";
@@ -42,6 +42,7 @@ void ensureSecureTopLevel().then((ok) => {
   if (!ok) return;
   startAutoUpdate();
   installNativeShell();
+  installStatusBarSync();
   createRoot(document.getElementById("root")!).render(
     <BrandingProvider>
       <AuthProvider>
