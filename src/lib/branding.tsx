@@ -154,6 +154,10 @@ function applyTheme(b: Branding) {
   const manifest = {
     name,
     short_name: name,
+    // Absolute URLs: the manifest itself is a blob:, so relative ones would
+    // resolve against it. Keep the installed app on this https origin.
+    start_url: `${window.location.origin}/${window.location.search}`,
+    scope: `${window.location.origin}/`,
     display: "standalone",
     background_color: "#ffffff",
     theme_color: rgb ? b.branding.primaryColor : "#5A41FF",
