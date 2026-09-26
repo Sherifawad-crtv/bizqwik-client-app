@@ -118,6 +118,19 @@ export interface PointsData {
   ledger: PointsLedgerRow[];
 }
 
+// A running PT bundle and the code its coach scans at each session. Finished
+// bundles aren't returned, so their codes leave the app.
+export interface PtBundle {
+  id: string;
+  name: string;
+  coachName: string;
+  sessionsRemaining: number;
+  sessionsIncluded: number;
+  expiryDate: string;
+  qrToken: string;
+  loggedToday: boolean;
+}
+
 export const api = {
   // public (pre-auth)
   branding: (slug: string) => callFn<Branding>(`client/branding?slug=${encodeURIComponent(slug)}`),
@@ -144,6 +157,7 @@ export const api = {
     }),
   checkIn: (token: string) => callFn<{ ok: true }>("client/check-in", { method: "POST", body: { token } }),
   wallet: () => callFn<WalletData>("client/wallet"),
+  ptBundles: () => callFn<{ bundles: PtBundle[] }>("client/pt"),
   points: () => callFn<PointsData>("client/points"),
   // Turns points into wallet credit at the gym's rate, in whole EGP. Omit
   // `points` to redeem everything redeemable.

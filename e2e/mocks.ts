@@ -93,6 +93,8 @@ export interface MockOptions {
   // Points screen data; a function is re-read on every load (e.g. after redeeming).
   points?: Record<string, unknown> | (() => Record<string, unknown>);
   onRedeem?: (body: Record<string, unknown>) => { status?: number; body: unknown };
+  // Running PT bundles (each with its coach-scan code); none by default.
+  pt?: unknown[];
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -146,6 +148,7 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
       }
       return json(route, { pointsSpent: 0, egpCredited: 0, points: 0, wallet: 0 });
     }
+    if (path.endsWith("/client/pt")) return json(route, { bundles: opts.pt ?? [] });
     if (path.endsWith("/client/points")) return json(route, typeof opts.points === "function" ? opts.points() : (opts.points ?? POINTS));
     if (path.endsWith("/client/classes")) return json(route, { activePlan: (opts.home?.groupPlan as unknown) ?? null, classes: opts.classes ?? CLASSES });
     if (path.includes("/book")) {
