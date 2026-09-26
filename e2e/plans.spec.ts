@@ -15,7 +15,7 @@ async function signIn(page: Page, opts: MockOptions) {
   await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
 }
 
-test("member: a class the plan covers books on the plan (bundle spends a credit)", async ({ page }) => {
+test("member: a class the plan covers books on the plan (bundle only reserves; the session is used at check-in)", async ({ page }) => {
   const sent: Record<string, unknown>[] = [];
   await signIn(page, {
     home: { groupPlan: BUNDLE_PLAN, package: null },
@@ -31,9 +31,9 @@ test("member: a class the plan covers books on the plan (bundle spends a credit)
 
   await page.getByRole("button", { name: "Book", exact: true }).click();
   await expect(page.getByText("Included in 10-Class Pack")).toBeVisible();
-  await expect(page.getByText("Uses 1 of your 7 class credits")).toBeVisible();
+  await expect(page.getByText(/Reserves your spot\. 1 of your 7 sessions is used when you check in/)).toBeVisible();
   await page.getByRole("button", { name: "Book with my plan" }).click();
-  await expect(page.getByText("Booked — 1 class credit used")).toBeVisible();
+  await expect(page.getByText("Spot reserved — a session is used when you check in")).toBeVisible();
   expect(sent).toEqual([{}]);
 });
 

@@ -15,7 +15,8 @@ import { QRScannerScreen } from "./components/bizqwik/QRScannerScreen";
 import { Toaster } from "./components/ui/sonner";
 import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
-import { api } from "../lib/api";
+import { api, errorCode, type ApiError } from "../lib/api";
+import { NoSessionsSheet } from "./components/bizqwik/NoSessionsSheet";
 
 type Step = "home" | "bookings" | "wallet" | "membership" | "rewards" | "profile";
 type NavItem = "home" | "bookings" | "profile";
@@ -58,6 +59,7 @@ function App() {
   // Global check-in scanner — reachable from the FAB on every tab, not just
   // from inside Bookings, so a member never has to navigate to check in.
   const [scanning, setScanning] = useState(false);
+  const [noSessions, setNoSessions] = useState<{ message: string; planName: string | null } | null>(null);
 
   useEffect(() => {
     if (auth.client) setStep("home");
@@ -105,10 +107,20 @@ function App() {
   const onScan = async (code: string) => {
     setScanning(false);
     try {
-      await api.checkIn(code.trim());
-      toast.success("Checked in — enjoy your session! 💪");
+      const res = await api.checkIn(code.trim());
+      const p = res.plan;
+      if (res.deducted && p) {
+        toast.success(`Checked in — 1 session used · ${p.creditsRemaining} of ${p.creditsTotal} left on ${p.name} 💪`);
+      } else {
+        toast.success("Checked in — enjoy your session! 💪");
+      }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Check-in failed.");
+      if (errorCode(e) === "no_sessions") {
+        const plan = (e as ApiError).data?.plan as { name?: string } | null | undefined;
+        setNoSessions({ message: e instanceof Error ? e.message : "No sessions left.", planName: plan?.name ?? null });
+      } else {
+        toast.error(e instanceof Error ? e.message : "Check-in failed.");
+      }
     }
   };
 
@@ -159,6 +171,14 @@ function App() {
       </div>
 
       {scanning && <QRScannerScreen onClose={() => setScanning(false)} onScanSuccess={onScan} />}
+      {noSessions && (
+        <NoSessionsSheet
+          message={noSessions.message}
+          planName={noSessions.planName}
+          onClose={() => setNoSessions(null)}
+          onSeePlans={() => { setNoSessions(null); setStep("membership"); }}
+        />
+      )}
     </Shell>
   );
 }
