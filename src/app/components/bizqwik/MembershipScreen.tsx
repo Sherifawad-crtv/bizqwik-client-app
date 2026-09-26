@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { ShieldCheck, CalendarClock, Dumbbell, Ticket, Lock } from "lucide-react";
+import { ShieldCheck, CalendarClock, Ticket, Lock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +14,8 @@ import {
 } from "../ui/alert-dialog";
 import { NotificationBell } from "./NotificationBell";
 import { useBranding } from "../../../lib/branding";
-import { api, type HomeData, type PlanOffer, type PlansData } from "../../../lib/api";
+import { api, type PlanOffer, type PlansData, type PtBundle } from "../../../lib/api";
+import { PtCodes } from "./PtCodes";
 import { PLAN_KIND_LABEL, egp, offerDetail, planDetail, shortDate } from "../../../lib/plans";
 
 interface MembershipScreenProps {
@@ -29,17 +30,17 @@ interface MembershipScreenProps {
 export function MembershipScreen({ onNotificationsClick, notificationCount }: MembershipScreenProps) {
   const { data: brand } = useBranding();
   const [plans, setPlans] = useState<PlansData | null>(null);
-  const [home, setHome] = useState<HomeData | null>(null);
+  const [pt, setPt] = useState<PtBundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [buying, setBuying] = useState<PlanOffer | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    Promise.all([api.plans(), api.home()])
-      .then(([p, h]) => {
+    Promise.all([api.plans(), api.ptBundles()])
+      .then(([p, t]) => {
         setPlans(p);
-        setHome(h);
+        setPt(t.bundles);
         setError(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load your plan."))
@@ -65,7 +66,6 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
   };
 
   const plan = plans?.activePlan ?? null;
-  const pkg = home?.package && home.package.status === "active" ? home.package : null;
   const gym = brand?.branding.appName ?? "the gym";
 
   return (
@@ -119,17 +119,7 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
             </div>
           )}
 
-          {pkg && (
-            <div className="mt-3 rounded-[1.25rem] border border-[var(--bq-neutral-dark)] p-4">
-              <div className="flex items-center gap-2 text-[var(--bq-text-secondary)] text-sm">
-                <Dumbbell className="w-4 h-4" /> Private training
-              </div>
-              <div className="text-[var(--bq-text-primary)] font-display text-[17px] mt-1">
-                {pkg.sessionsRemaining} of {pkg.sessionsIncluded} sessions left
-              </div>
-              <div className="text-[var(--bq-text-tertiary)] text-xs mt-0.5">Expires {shortDate(pkg.expiryDate)}</div>
-            </div>
-          )}
+          <PtCodes bundles={pt} />
 
           {/* Shop */}
           <div className="flex items-baseline justify-between mt-8 mb-3">

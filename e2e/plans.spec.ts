@@ -96,3 +96,34 @@ test("member: the shop is locked while a plan is still running", async ({ page }
   await expect(page.getByText(/You can have one plan at a time/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Buy with wallet" })).toHaveCount(0);
 });
+
+test("member: each running PT bundle shows its own code for the coach to scan", async ({ page }) => {
+  await signIn(page, {
+    home: { package: null },
+    pt: [
+      { id: "pk1", name: "PT · 8 Sessions", coachName: "Coach Nour", sessionsRemaining: 5, sessionsIncluded: 8, expiryDate: "2026-12-01", qrToken: "bqpt_abc", loggedToday: false },
+      { id: "pk2", name: "PT · 4 Sessions", coachName: "Coach Omar", sessionsRemaining: 2, sessionsIncluded: 4, expiryDate: "2026-11-01", qrToken: "bqpt_def", loggedToday: true },
+    ],
+  });
+  await page.getByText("No active plan").click();
+  await expect(page.getByRole("heading", { name: "My plan" })).toBeVisible();
+  await expect(page.getByTestId("pt-bundle")).toHaveCount(2);
+  await expect(page.getByText("Private training · Coach Nour")).toBeVisible();
+  await expect(page.getByText("5 of 8 sessions left")).toBeVisible();
+
+  await page.getByRole("button", { name: "Show code to your coach" }).nth(1).click();
+  const sheet = page.getByRole("dialog", { name: "PT code" });
+  await expect(sheet.getByText("Show this to Coach Omar when your session starts.")).toBeVisible();
+  await expect(sheet.getByTestId("pt-qr")).toBeVisible();
+  await expect(sheet.getByText("Today's session is already logged")).toBeVisible();
+  await sheet.getByRole("button", { name: "Close code" }).click();
+  await expect(sheet).toHaveCount(0);
+});
+
+test("member: no PT codes once bundles are finished", async ({ page }) => {
+  await signIn(page, { home: { package: null }, pt: [] });
+  await page.getByText("No active plan").click();
+  await expect(page.getByRole("heading", { name: "My plan" })).toBeVisible();
+  await expect(page.getByTestId("pt-bundle")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show code to your coach" })).toHaveCount(0);
+});
