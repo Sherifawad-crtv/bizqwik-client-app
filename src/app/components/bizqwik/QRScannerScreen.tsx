@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, AlertCircle, RotateCcw } from "lucide-react";
-import { Html5Qrcode } from "html5-qrcode";
+import { startQrCamera } from "../../../lib/qrCamera";
 import { toast } from "sonner";
 
 interface QRScannerScreenProps {
@@ -17,7 +17,7 @@ const REGION_ID = "qr-reader";
 // previously-saved site setting, so both get the Settings pointer.
 function friendlyCameraError(err: unknown): string {
   const name = err instanceof DOMException ? err.name : (err as { name?: string } | undefined)?.name;
-  if (!window.isSecureContext) {
+  if (!window.isSecureContext || name === "NotSupportedError") {
     return "Camera access needs a secure (https) connection. Open this gym's app link directly rather than a plain http address.";
   }
   switch (name) {
@@ -42,83 +42,42 @@ export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps
   const [scanning, setScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0); // bump to retry after an error
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const hasScannedRef = useRef(false);
-  const aliveRef = useRef(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const stopRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    aliveRef.current = true;
-    hasScannedRef.current = false;
+    let alive = true;
     setError(null);
     setScanning(true);
-
-    const html5QrCode = new Html5Qrcode(REGION_ID, /* verbose= */ false);
-    scannerRef.current = html5QrCode;
-
-    // No `qrbox` here on purpose: passing one makes the library inject its
-    // own shaded scan-region + color-shifting corner brackets, positioned
-    // absolutely against the nearest positioned ancestor — which, without
-    // extra plumbing, conflicts with (and visually inverts against) our own
-    // corner-bracket overlay below. Scanning the full frame is also more
-    // forgiving for members than requiring a pixel-perfect box.
-    const config = { fps: 10, aspectRatio: 1.0 };
-
-    const onDecoded = (decodedText: string) => {
-      if (hasScannedRef.current || !aliveRef.current) return;
-      hasScannedRef.current = true;
+    const video = videoRef.current;
+    if (!video) return;
+    startQrCamera(video, (text) => {
+      if (!alive) return;
       setScanning(false);
-      html5QrCode.stop().catch(() => {}).finally(() => {
-        if (aliveRef.current) onScanSuccess(decodedText);
+      onScanSuccess(text);
+    })
+      .then((stop) => {
+        if (alive) stopRef.current = stop;
+        else stop();
+      })
+      .catch((err) => {
+        if (!alive) return;
+        console.error("Error starting QR scanner:", err);
+        setError(friendlyCameraError(err));
+        setScanning(false);
       });
-    };
-    const onDecodeError = () => {}; // fires continuously while no code is in frame — expected, ignore
-
-    const start = async () => {
-      try {
-        // Non-exact "environment" is a preference, not a hard constraint, so
-        // browsers fall back to whatever camera is available rather than
-        // throwing — this is the most broadly compatible first attempt.
-        await html5QrCode.start({ facingMode: "environment" }, config, onDecoded, onDecodeError);
-      } catch {
-        if (!aliveRef.current) return;
-        // Some devices reject facingMode constraints outright; fall back to
-        // enumerating cameras and picking the last one (rear camera is
-        // conventionally listed last on phones).
-        try {
-          const cameras = await Html5Qrcode.getCameras();
-          if (!cameras.length) throw new Error("no camera");
-          const cameraId = cameras[cameras.length - 1].id;
-          await html5QrCode.start(cameraId, config, onDecoded, onDecodeError);
-        } catch (err) {
-          if (!aliveRef.current) return;
-          console.error("Error starting QR scanner:", err);
-          setError(friendlyCameraError(err));
-          setScanning(false);
-        }
-      }
-    };
-
-    start();
-
     return () => {
-      aliveRef.current = false;
-      const inst = scannerRef.current;
-      if (inst && inst.isScanning) {
-        inst.stop().catch(() => {}).finally(() => inst.clear());
-      } else {
-        inst?.clear();
-      }
+      alive = false;
+      stopRef.current?.();
+      stopRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
 
   const handleClose = () => {
-    const inst = scannerRef.current;
-    if (inst && inst.isScanning) {
-      inst.stop().then(onClose).catch(onClose);
-    } else {
-      onClose();
-    }
+    stopRef.current?.();
+    stopRef.current = null;
+    onClose();
   };
 
   const retry = () => {
@@ -158,10 +117,9 @@ export function QRScannerScreen({ onClose, onScanSuccess }: QRScannerScreenProps
           {/* QR Scanner — position:relative + a reserved aspect-square box so
               the injected <video> has somewhere to render (and our overlay
               lines up) before/while the camera stream attaches. */}
-          <div
-            id={REGION_ID}
-            className="relative w-full aspect-square rounded-3xl overflow-hidden bg-neutral-900 [&_video]:!absolute [&_video]:!inset-0 [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover"
-          />
+          <div id={REGION_ID} className="relative w-full aspect-square rounded-3xl overflow-hidden bg-neutral-900">
+            <video ref={videoRef} playsInline muted autoPlay className="absolute inset-0 w-full h-full object-cover" />
+          </div>
 
           {/* Scanning Frame Overlay (purely decorative — the library scans
               the full frame, not just this box) */}
