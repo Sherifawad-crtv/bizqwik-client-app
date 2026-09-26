@@ -36,6 +36,12 @@ async function callFn<T>(path: string, opts?: { method?: Method; body?: Record<s
 /** A refused call: `code` is the server's machine-readable reason, e.g.
  * "active_plan_confirm" (drop-in while a plan is running — ask first),
  * "active_plan" (already on a plan) or "insufficient_wallet". */
+export type CheckInResult = {
+  ok: true;
+  deducted: boolean;
+  plan: { name: string; kind: string; creditsRemaining: number | null; creditsTotal: number | null } | null;
+};
+
 export type ApiError = Error & { code?: string; data?: Record<string, any> };
 export const errorCode = (e: unknown): string | undefined => (e as ApiError)?.code;
 
@@ -155,7 +161,9 @@ export const api = {
       method: "POST",
       body: offer.offerType === "series" ? { seriesId: offer.id } : { planTypeId: offer.id },
     }),
-  checkIn: (token: string) => callFn<{ ok: true }>("client/check-in", { method: "POST", body: { token } }),
+  // A class bundle loses one session on check-in (once a day); memberships
+  // and PT don't. `plan` is the member's group plan after the check-in.
+  checkIn: (token: string) => callFn<CheckInResult>("client/check-in", { method: "POST", body: { token } }),
   wallet: () => callFn<WalletData>("client/wallet"),
   ptBundles: () => callFn<{ bundles: PtBundle[] }>("client/pt"),
   points: () => callFn<PointsData>("client/points"),

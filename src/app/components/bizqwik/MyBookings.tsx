@@ -54,8 +54,10 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
         res.refundedToWallet > 0
           ? `Cancelled — ${Math.round(res.refundedToWallet)} EGP back to your wallet`
           : res.planCreditReturned
-            ? "Cancelled — your plan spot is freed (bundle credits come back)"
-            : "Booking cancelled",
+            ? "Cancelled — the session is back on your bundle"
+            : cancelling.coverage === "plan"
+              ? "Cancelled — nothing was used from your plan"
+              : "Booking cancelled",
       );
       setCancelling(null);
       load();
@@ -98,7 +100,7 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
             <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
             <AlertDialogDescription>
               {cancelling?.coverage === "plan"
-                ? "This class is on your plan. Cancelling frees your spot, and if it used a bundle credit you get it back."
+                ? "This class is on your plan. Cancelling frees your spot — nothing is used from your plan."
                 : cancelling?.payStatus === "paid" && cancelling?.payMethod === "wallet"
                   ? "Your payment will be refunded to your wallet."
                   : "This will free up your spot."}

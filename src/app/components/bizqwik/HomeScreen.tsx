@@ -267,7 +267,7 @@ function BookingSheet({ cls, plan, walletBalance, onClose, onBooked }: { cls: Gy
     }
   };
 
-  const bookOnPlan = () => run({}, plan?.kind === "bundle" ? "Booked — 1 class credit used" : "Booked on your plan");
+  const bookOnPlan = () => run({}, plan?.kind === "bundle" ? "Spot reserved — a session is used when you check in" : "Booked on your plan");
   const bookDropIn = (payMethod: "wallet" | "desk", confirmActivePlan = false) =>
     run({ payMethod, useDropIn: covered, confirmActivePlan }, payMethod === "wallet" ? "Booked — paid from wallet" : "Booked — pay at the desk");
 
@@ -289,7 +289,7 @@ function BookingSheet({ cls, plan, walletBalance, onClose, onBooked }: { cls: Gy
             <div className="mb-4">
               <div className="rounded-[1.1rem] bg-[var(--bq-primary)]/10 p-4 mb-3">
                 <div className="text-[var(--bq-primary-readable)] text-sm font-medium">Included in {plan.name}</div>
-                <div className="text-[var(--bq-text-secondary)] text-xs mt-0.5">{plan.kind === "bundle" ? `Uses 1 of your ${plan.creditsRemaining} class credits` : "No extra charge"}</div>
+                <div className="text-[var(--bq-text-secondary)] text-xs mt-0.5">{plan.kind === "bundle" ? `Reserves your spot. 1 of your ${plan.creditsRemaining} sessions is used when you check in — cancel or miss it and nothing is used.` : "No extra charge"}</div>
               </div>
               <button
                 disabled={busy}

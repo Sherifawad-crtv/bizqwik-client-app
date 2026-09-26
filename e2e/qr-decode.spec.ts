@@ -55,3 +55,37 @@ test("QR scanner: reads the gym's check-in code from the camera and checks the m
   // The scanner closes and releases the camera.
   await expect(page.getByRole("heading", { name: "Scan QR Code" })).toHaveCount(0);
 });
+
+async function signInAndScan(page: import("@playwright/test").Page, reply: { status: number; body: unknown }) {
+  await mockBackend(page);
+  await page.route(/client\/check-in$/, (r) =>
+    r.fulfill({ status: reply.status, headers: { "access-control-allow-origin": "*", "content-type": "application/json" }, body: JSON.stringify(reply.body) }),
+  );
+  await page.goto("/?gym=revolt");
+  await page.getByRole("button", { name: "Skip" }).click();
+  await page.locator('input[type="email"]').fill("zara@zztest.dev");
+  await page.locator('input[type="password"]').fill("ZZpass123!");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
+  await page.getByRole("button", { name: "Scan to check in" }).click();
+}
+
+// A class bundle loses one session per check-in: the member is told how many remain.
+test("check-in on a class bundle says a session was used and how many are left", async ({ page }) => {
+  await signInAndScan(page, { status: 200, body: { ok: true, deducted: true, plan: { name: "10 Classes", kind: "bundle", creditsRemaining: 7, creditsTotal: 10 } } });
+  await expect(page.getByText("1 session used · 7 of 10 left on 10 Classes", { exact: false })).toBeVisible({ timeout: 10_000 });
+});
+
+// A used-up bundle is refused with a clear popup that points to renewing.
+test("check-in with no sessions left opens the no-sessions popup", async ({ page }) => {
+  await signInAndScan(page, {
+    status: 400,
+    body: { error: "You've used all 10 sessions of 10 Classes. Renew at the front desk to keep training.", code: "no_sessions", plan: { name: "10 Classes" } },
+  });
+  const sheet = page.getByRole("dialog", { name: "No sessions left" });
+  await expect(sheet).toBeVisible({ timeout: 10_000 });
+  await expect(sheet.getByText("10 Classes · 0 sessions remaining")).toBeVisible();
+  await expect(sheet.getByText(/Renew at the front desk/)).toBeVisible();
+  await sheet.getByRole("button", { name: "Got it" }).click();
+  await expect(sheet).toHaveCount(0);
+});
