@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { useBranding } from "../../../lib/branding";
 
 interface IntroSlide {
   title: string;
@@ -7,9 +8,11 @@ interface IntroSlide {
   image: string;
 }
 
+// The first slide is branded per gym ("Welcome to Solid"); images come from
+// the gym's onboarding assets (set in ops) when it has them.
 const slides: IntroSlide[] = [
   {
-    title: "Welcome to Bizqwik",
+    title: "Welcome",
     description: "Your premium fitness journey starts here. Book classes, track progress, and earn rewards.",
     image: "https://images.unsplash.com/photo-1744551472726-24a3eb12e82a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaXRuZXNzJTIwZ3ltJTIwbW9kZXJufGVufDF8fHx8MTc2MTg3NDM0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   },
@@ -32,7 +35,15 @@ interface IntroScreenProps {
 }
 
 export function IntroScreen({ currentSlide, onSlideChange, onComplete }: IntroScreenProps) {
-  const slide = slides[currentSlide];
+  const { data } = useBranding();
+  const gymName = data?.branding.appName ?? data?.org.name ?? null;
+  const assets = data?.branding.onboardingAssets ?? [];
+  const base = slides[currentSlide];
+  const slide = {
+    ...base,
+    title: currentSlide === 0 ? (gymName ? `Welcome to ${gymName}` : "Welcome") : base.title,
+    image: assets[currentSlide] || base.image,
+  };
   const isLastSlide = currentSlide === slides.length - 1;
 
   const handleNext = () => {
