@@ -1,3 +1,4 @@
+import { EmptyState } from "./EmptyState";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { TrendingUp, TrendingDown, ArrowLeft, Receipt, RotateCcw } from "lucide-react";
@@ -65,7 +66,11 @@ export function WalletScreen({ onNotificationsClick, notificationCount, onBack }
         {loading && <div className="py-10 flex justify-center"><div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" /></div>}
         {error && <div className="text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>{error}</div>}
         {!loading && !error && events.length === 0 && (
-          <div className="py-10 text-center text-[var(--bq-text-secondary)] text-sm">No transactions yet.</div>
+          <EmptyState
+            icon={<Receipt />}
+            title="No transactions yet"
+            body="Everything you buy at the desk or in the app, plus refunds and credit, is listed here."
+          />
         )}
         <div className="flex flex-col gap-2">
           {events.map((t) => {

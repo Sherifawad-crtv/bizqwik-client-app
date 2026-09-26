@@ -1,6 +1,7 @@
+import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Wallet, Star, Clock, ChevronRight, X, BadgeCheck } from "lucide-react";
+import { Wallet, Star, Clock, ChevronRight, X, BadgeCheck, CalendarX } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { NotificationBell } from "./NotificationBell";
 import { api, errorCode, type HomeData, type GymClass, type GroupPlan } from "../../../lib/api";
@@ -170,7 +171,13 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
             {error}
           </div>
         )}
-        {!loading && !error && todays.length === 0 && <div className="py-10 text-center text-[var(--bq-text-secondary)] text-sm">No classes on this day.</div>}
+        {!loading && !error && todays.length === 0 && (
+          <EmptyState
+            icon={<CalendarX />}
+            title="No classes on this day"
+            body={classes.length === 0 ? "Your gym hasn't scheduled any classes yet. They'll show up here as soon as it does." : "Pick another day above to see what's on."}
+          />
+        )}
 
         <div className="flex flex-col gap-3 mt-3">
           {todays.map((c) => (

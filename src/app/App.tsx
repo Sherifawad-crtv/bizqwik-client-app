@@ -125,7 +125,7 @@ function App() {
         />
       )}
 
-      {step === "bookings" && <MyBookings />}
+      {step === "bookings" && <MyBookings onBrowse={() => setStep("home")} />}
 
       {step === "wallet" && (
         <WalletScreen onNotificationsClick={() => {}} notificationCount={0} onBack={previousStep === "profile" ? backToProfile : undefined} />
