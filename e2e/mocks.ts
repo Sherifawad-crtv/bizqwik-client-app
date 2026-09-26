@@ -82,6 +82,9 @@ export interface MockOptions {
   // Return { status, body } to answer a booking or plan purchase yourself.
   onBook?: (body: Record<string, unknown>) => { status?: number; body: unknown };
   onBuy?: (body: Record<string, unknown>) => { status?: number; body: unknown };
+  // Points screen data; a function is re-read on every load (e.g. after redeeming).
+  points?: Record<string, unknown> | (() => Record<string, unknown>);
+  onRedeem?: (body: Record<string, unknown>) => { status?: number; body: unknown };
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -128,7 +131,14 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     }
     if (path.endsWith("/client/bookings")) return json(route, BOOKINGS);
     if (path.endsWith("/client/wallet")) return json(route, WALLET);
-    if (path.endsWith("/client/points")) return json(route, POINTS);
+    if (path.endsWith("/client/points/redeem")) {
+      if (opts.onRedeem) {
+        const r = opts.onRedeem(body());
+        return json(route, r.body, r.status ?? 200);
+      }
+      return json(route, { pointsSpent: 0, egpCredited: 0, points: 0, wallet: 0 });
+    }
+    if (path.endsWith("/client/points")) return json(route, typeof opts.points === "function" ? opts.points() : (opts.points ?? POINTS));
     if (path.endsWith("/client/classes")) return json(route, { activePlan: (opts.home?.groupPlan as unknown) ?? null, classes: opts.classes ?? CLASSES });
     if (path.includes("/book")) {
       if (opts.onBook) {

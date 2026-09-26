@@ -13,6 +13,7 @@ interface WalletScreenProps {
 const CAT_LABEL: Record<string, string> = {
   refund: "Refund",
   compensation: "Compensation",
+  reward: "Points redeemed",
   purchase: "Purchase",
   class_booking: "Class booking",
   expiry: "Expired credit",
