@@ -79,3 +79,11 @@ test("member: unknown gym shows a friendly error", async ({ page }) => {
   await page.goto("/?gym=nope");
   await expect(page.getByText("Gym not found").first()).toBeVisible();
 });
+
+// Onboarding is branded per gym: the first slide greets with the gym's name.
+test("onboarding welcomes the member to their gym by name", async ({ page }) => {
+  await mockBackend(page);
+  await page.goto("/?gym=revolt");
+  await expect(page.getByRole("heading", { name: "Welcome to Revolt" })).toBeVisible();
+  await expect(page.getByText(/Bizqwik/)).toHaveCount(0);
+});
