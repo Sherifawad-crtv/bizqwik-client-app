@@ -3,7 +3,6 @@ import App from "./app/App.tsx";
 import { installNativeShell } from "./app/nativeShell.ts";
 import { BrandingProvider } from "./lib/branding";
 import { AuthProvider } from "./lib/auth";
-import { SECURE_FALLBACK_ORIGIN, subdomainSlug } from "./lib/config";
 import "./styles/index.css";
 
 // The camera (QR check-in) only works on a secure, top-level page. If the app
@@ -24,15 +23,6 @@ async function ensureSecureTopLevel(): Promise<boolean> {
       .catch(() => false);
     if (ok) {
       window.location.replace(`${secure}${pathname}${search}${hash}`);
-      return false;
-    }
-    // No certificate for this gym's subdomain yet: use the shared secure
-    // address instead, carrying the gym along.
-    const slug = subdomainSlug(hostname);
-    if (slug) {
-      const params = new URLSearchParams(search);
-      params.set("gym", slug);
-      window.location.replace(`${SECURE_FALLBACK_ORIGIN}${pathname}?${params}${hash}`);
       return false;
     }
   }
