@@ -1,7 +1,6 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Wallet, Star, CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
-import { AnimatePresence } from "motion/react";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
 import { ClassCarousel } from "./ClassCard";
@@ -203,7 +202,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
           }}
         />
       )}
-      <AnimatePresence>{ptCode && <PtCodeSheet bundle={ptCode} onClose={() => setPtCode(null)} />}</AnimatePresence>
+      {ptCode && <PtCodeSheet bundle={ptCode} onClose={() => setPtCode(null)} />}
 
       {booking && (
         <BookingSheet
