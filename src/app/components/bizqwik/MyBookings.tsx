@@ -11,7 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { toast } from "sonner";
+import { useFeedback } from "../../../lib/feedback";
+import { defaultClassImage } from "../../../lib/plans";
 import { api, type Booking } from "../../../lib/api";
 
 const ATT_LABEL: Record<string, { label: string; cls: string }> = {
@@ -31,6 +32,7 @@ function whenLabel(iso: string | null): string {
 }
 
 export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
+  const feedback = useFeedback();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,19 +52,20 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
     setBusy(true);
     try {
       const res = await api.cancelBooking(cancelling.id);
-      toast.success(
+      feedback.success(
+        "Booking cancelled",
         res.refundedToWallet > 0
-          ? `Cancelled — ${Math.round(res.refundedToWallet)} EGP back to your wallet`
+          ? `${Math.round(res.refundedToWallet)} EGP is back in your wallet.`
           : res.planCreditReturned
-            ? "Cancelled — the session is back on your bundle"
+            ? "The session is back on your bundle."
             : cancelling.coverage === "plan"
-              ? "Cancelled — nothing was used from your plan"
-              : "Booking cancelled",
+              ? "Nothing was used from your plan."
+              : "Your spot is free for someone else.",
       );
       setCancelling(null);
       load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't cancel.");
+      feedback.error("Couldn't cancel", e instanceof Error ? e.message : "Please try again.");
     } finally {
       setBusy(false);
     }
@@ -83,7 +86,7 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
         <EmptyState
           icon={<CalendarPlus />}
           title="No bookings yet"
-          body="Book a class from Home and it shows up here, with the option to cancel before it starts."
+          body="Book a class from the schedule and it shows up here, with the option to cancel before it starts."
           action={onBrowse ? { label: "Browse classes", onClick: onBrowse } : undefined}
         />
       )}
@@ -121,7 +124,8 @@ function Row({ b, onCancel }: { b: Booking; onCancel?: () => void }) {
   return (
     <div className="p-4 rounded-[1.25rem] border border-[var(--bq-neutral-dark)]">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <img src={b.classImageUrl || defaultClassImage(b.classId)} alt="" className={`w-12 h-15 flex-none rounded-xl object-cover ${b.classImageUrl ? "" : "grayscale"}`} style={{ height: 60 }} />
+        <div className="min-w-0 flex-1">
           <div className="text-[var(--bq-text-primary)] font-display text-[17px] truncate">{b.classTitle ?? "Class"}</div>
           <div className="flex items-center gap-1.5 text-[var(--bq-text-secondary)] text-sm mt-1"><CalendarIcon className="w-3.5 h-3.5" /> {whenLabel(b.classStartsAt)}</div>
           <div className="text-[var(--bq-text-tertiary)] text-xs mt-1">
