@@ -1,10 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Check, AlertTriangle, Info } from "lucide-react";
+import { Sheet, Kicker, SheetTitle, SheetSub, Button, SheetSuccessIcon } from "../app/components/bizqwik/Sheet";
 
-// The member app's one way of telling people how something went: a centred
-// modal in the gym's colour (never a toast). A success closes itself after a
-// moment; a problem stays until it's dismissed, and can offer a way forward.
+// The member app's one way of telling people how something went, in
+// Bizqwik's sheet style: a success shows the check and closes itself; a
+// problem stays until it's dismissed and can offer a way forward.
 type Tone = "success" | "error" | "info";
 interface Action {
   label: string;
@@ -15,39 +14,84 @@ interface Message {
   tone: Tone;
   title: string;
   body?: ReactNode;
+  kicker?: string;
   action?: Action;
   dismissLabel?: string;
-  // Accessible name of the dialog (defaults to the title).
-  label?: string;
 }
-type Input = Omit<Message, "id" | "tone">;
-
+type Opts = Omit<Message, "id" | "tone" | "title" | "body">;
 interface Feedback {
-  success: (title: string, body?: ReactNode, opts?: Omit<Input, "title" | "body">) => void;
-  error: (title: string, body?: ReactNode, opts?: Omit<Input, "title" | "body">) => void;
-  info: (title: string, body?: ReactNode, opts?: Omit<Input, "title" | "body">) => void;
+  success: (title: string, body?: ReactNode, opts?: Opts) => void;
+  error: (title: string, body?: ReactNode, opts?: Opts) => void;
+  info: (title: string, body?: ReactNode, opts?: Opts) => void;
 }
 
 const Ctx = createContext<Feedback | null>(null);
-const AUTO_CLOSE_MS = 2400;
+const HOLD_MS = 1600;
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<Message | null>(null);
+  const [open, setOpen] = useState(false);
   const seq = useRef(0);
-  const show = useCallback((tone: Tone, m: Input) => setMsg({ ...m, tone, id: ++seq.current }), []);
+  const show = useCallback((tone: Tone, title: string, body?: ReactNode, opts?: Opts) => {
+    setMsg({ ...opts, tone, title, body, id: ++seq.current });
+    setOpen(true);
+  }, []);
   const api = useMemo<Feedback>(
     () => ({
-      success: (title, body, opts) => show("success", { title, body, ...opts }),
-      error: (title, body, opts) => show("error", { title, body, ...opts }),
-      info: (title, body, opts) => show("info", { title, body, ...opts }),
+      success: (t, b, o) => show("success", t, b, o),
+      error: (t, b, o) => show("error", t, b, o),
+      info: (t, b, o) => show("info", t, b, o),
     }),
     [show],
   );
-  const close = useCallback(() => setMsg(null), []);
+  const close = useCallback(() => setOpen(false), []);
+
+  // A success closes itself once the check has been seen.
+  const [iconIn, setIconIn] = useState(false);
+  useEffect(() => {
+    setIconIn(false);
+    if (!msg || !open || msg.tone !== "success") return;
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setIconIn(true)));
+    const t = window.setTimeout(close, HOLD_MS);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+    };
+  }, [msg, open, close]);
+
   return (
     <Ctx.Provider value={api}>
       {children}
-      <AnimatePresence>{msg && <FeedbackModal key={msg.id} msg={msg} onClose={close} />}</AnimatePresence>
+      {msg && (
+        <Sheet open={open} onClose={close} label={msg.title}>
+          <div data-testid="feedback" data-tone={msg.tone}>
+            {msg.tone === "success" ? (
+              <SheetSuccessIcon label={msg.title} sub={msg.body} iconIn={iconIn} />
+            ) : (
+              <>
+                <Kicker>{msg.kicker ?? (msg.tone === "error" ? "Couldn't finish" : "Heads up")}</Kicker>
+                <SheetTitle>{msg.title}</SheetTitle>
+                {msg.body && <SheetSub>{msg.body}</SheetSub>}
+                {msg.action && (
+                  <Button
+                    fullWidth
+                    size="lg"
+                    onClick={() => {
+                      close();
+                      msg.action?.onClick?.();
+                    }}
+                  >
+                    {msg.action.label}
+                  </Button>
+                )}
+                <Button variant={msg.action ? "quiet" : "primary"} fullWidth size={msg.action ? "md" : "lg"} style={msg.action ? { marginTop: 8 } : undefined} onClick={close}>
+                  {msg.dismissLabel ?? "OK"}
+                </Button>
+              </>
+            )}
+          </div>
+        </Sheet>
+      )}
     </Ctx.Provider>
   );
 }
@@ -56,91 +100,4 @@ export function useFeedback(): Feedback {
   const f = useContext(Ctx);
   if (!f) throw new Error("useFeedback needs a FeedbackProvider");
   return f;
-}
-
-const TONE_ICON = { success: Check, error: AlertTriangle, info: Info } as const;
-
-function FeedbackModal({ msg, onClose }: { msg: Message; onClose: () => void }) {
-  const auto = msg.tone === "success" && !msg.action;
-  useEffect(() => {
-    if (!auto) return;
-    const t = window.setTimeout(onClose, AUTO_CLOSE_MS);
-    return () => window.clearTimeout(t);
-  }, [auto, onClose]);
-
-  const Glyph = TONE_ICON[msg.tone];
-  const badge =
-    msg.tone === "error"
-      ? "bg-[#fef3f2] text-[#d92d20]"
-      : "bg-[var(--bq-primary)] text-[var(--bq-on-primary)]";
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-[80] flex items-center justify-center px-6"
-      style={{ background: "rgba(0,0,0,.45)" }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-label={msg.label ?? msg.title}
-        data-testid="feedback"
-        data-tone={msg.tone}
-        className="relative w-full max-w-[340px] overflow-hidden rounded-[1.75rem] bg-white px-6 pt-7 pb-6 text-center"
-        initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", stiffness: 420, damping: 30 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <motion.div
-          className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${badge}`}
-          initial={{ scale: 0.4 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 500, damping: 18, delay: 0.05 }}
-        >
-          <Glyph className="h-8 w-8" strokeWidth={2.4} />
-        </motion.div>
-        <div className="font-display text-[21px] leading-tight text-[var(--bq-text-primary)]">{msg.title}</div>
-        {msg.body && <div className="mt-2 text-[15px] leading-relaxed text-[var(--bq-text-secondary)]">{msg.body}</div>}
-
-        {auto ? (
-          // A thin bar shows the modal is about to close on its own.
-          <div className="mt-5 h-1 overflow-hidden rounded-full bg-[var(--bq-neutral)]">
-            <motion.div
-              className="h-full rounded-full bg-[var(--bq-primary)]"
-              initial={{ width: "100%" }}
-              animate={{ width: "0%" }}
-              transition={{ duration: AUTO_CLOSE_MS / 1000, ease: "linear" }}
-            />
-          </div>
-        ) : (
-          <div className="mt-6 flex flex-col gap-2">
-            {msg.action && (
-              <button
-                onClick={() => {
-                  onClose();
-                  msg.action?.onClick?.();
-                }}
-                className="h-12 w-full rounded-[1.1rem] bg-[var(--bq-primary)] font-semibold text-[var(--bq-on-primary)] transition-transform active:scale-[0.98]"
-              >
-                {msg.action.label}
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className={`h-12 w-full rounded-[1.1rem] font-semibold transition-transform active:scale-[0.98] ${
-                msg.action ? "bg-[var(--bq-neutral)] text-[var(--bq-text-primary)]" : "bg-[var(--bq-primary)] text-[var(--bq-on-primary)]"
-              }`}
-            >
-              {msg.dismissLabel ?? (msg.tone === "error" ? "OK" : "Done")}
-            </button>
-          </div>
-        )}
-      </motion.div>
-    </motion.div>
-  );
 }

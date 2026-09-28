@@ -119,11 +119,11 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
         </div>
 
         {/* Quick actions */}
-        <div className="mt-5 grid grid-cols-3 gap-2.5" role="group" aria-label="Quick actions">
+        <div className="mt-6 grid grid-cols-3" role="group" aria-label="Quick actions">
           {actions.map((a) => (
-            <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-2 rounded-[1.25rem] border border-[var(--bq-neutral-dark)] px-2 py-3.5 active:scale-[0.97] transition-transform">
-              <span className="w-10 h-10 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center">{a.icon}</span>
-              <span className="text-[12px] font-medium text-[var(--bq-text-primary)] leading-tight text-center">{a.label}</span>
+            <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-2 active:scale-[0.96] transition-transform">
+              <span className="w-14 h-14 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{a.icon}</span>
+              <span className="text-[13px] font-medium text-[var(--bq-text-primary)] leading-tight text-center">{a.label}</span>
             </button>
           ))}
         </div>

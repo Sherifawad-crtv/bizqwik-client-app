@@ -1,5 +1,5 @@
 import type { GroupPlan, PackageInstance } from "../../../lib/api";
-import { PLAN_KIND_LABEL, daysLeft, planDetail, shortDate } from "../../../lib/plans";
+import { PLAN_KIND_LABEL, daysLeft, shortDate } from "../../../lib/plans";
 
 const DAY = 86_400_000;
 
@@ -18,7 +18,7 @@ export function MembershipHero({ plan, pkg, onOpen }: { plan: GroupPlan | null; 
   if (plan) {
     label = PLAN_KIND_LABEL[plan.kind];
     title = plan.name;
-    detail = planDetail(plan);
+    detail = `Until ${shortDate(plan.expiresAt)}`;
     if (plan.kind === "bundle") {
       big = String(plan.creditsRemaining ?? 0);
       of = `/ ${plan.creditsTotal}`;
@@ -60,43 +60,39 @@ export function MembershipHero({ plan, pkg, onOpen }: { plan: GroupPlan | null; 
       onClick={onOpen}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen?.()}
       data-testid="membership-hero"
-      className="relative overflow-hidden rounded-[1.75rem] p-5 text-[var(--bq-on-primary)] active:scale-[0.99] transition-transform cursor-pointer"
-      style={{
-        background:
-          "radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--bq-primary-light), transparent 20%) 0%, transparent 55%), linear-gradient(135deg, var(--bq-primary) 0%, var(--bq-primary-dark) 100%)",
-      }}
+      className="relative overflow-hidden rounded-[28px] px-5 pt-5 pb-[18px] text-[var(--bq-on-primary)] cursor-pointer"
+      style={{ background: "var(--bq-primary)" }}
     >
-      <div className="relative flex items-center justify-between gap-3">
-        <span className="text-[13px] opacity-85 truncate">{label}</span>
-        {(plan || pkg) && <span className="flex-none rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md">Active</span>}
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate font-mono text-[11px] font-bold uppercase tracking-[.08em] opacity-75">{label}</span>
+        {(plan || pkg) && <span className="flex-none rounded-full bg-white/20 px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-[.06em]">Active</span>}
       </div>
-
-      <div className="relative mt-1 font-display text-[19px] leading-tight truncate pr-16">{title}</div>
+      <div className="mt-1 font-display text-[18px] font-bold leading-tight truncate">{title}</div>
 
       {big !== null ? (
-        <div className="relative mt-3 flex items-end gap-2">
-          <span className="font-display text-[46px] leading-none tracking-tight">{big}</span>
-          <span className="pb-1.5 text-[15px] opacity-85">
+        <div className="mt-2 flex items-end gap-2">
+          <span className="font-display text-[56px] font-extrabold leading-none tracking-[-.03em] tabular-nums">{big}</span>
+          <span className="pb-1.5 font-mono text-[13px] opacity-85">
             {of ? `${of} ` : ""}
             {unit}
           </span>
         </div>
       ) : (
-        <div className="relative mt-3 text-[15px] opacity-90 max-w-[70%]">Book on a plan and save on every class.</div>
+        <div className="mt-2 font-mono text-[13px] opacity-85">Book on a plan and save on every class.</div>
       )}
 
       {progress !== null && (
-        <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-white/25">
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/25">
           <div className="h-full rounded-full bg-white" style={{ width: `${Math.round(progress * 100)}%` }} />
         </div>
       )}
 
-      <div className="relative mt-3 flex items-center justify-between gap-3">
-        <span className="min-w-0 text-[12px] opacity-80 truncate">
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate font-mono text-[12px] opacity-80">
           {detail}
           {plan && pkg && pkg.status === "active" ? ` · + PT ${pkg.sessionsRemaining} left` : ""}
         </span>
-        <span className="flex-none rounded-full bg-black/80 px-4 py-2 text-[13px] font-semibold text-white">{cta}</span>
+        <span className="flex-none rounded-full bg-white px-4 py-2 text-[14px] font-bold text-[var(--bq-primary-readable)]">{cta}</span>
       </div>
       {plan && <span className="sr-only">Valid until {shortDate(plan.expiresAt)}</span>}
     </div>

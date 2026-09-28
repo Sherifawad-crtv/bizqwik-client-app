@@ -1,18 +1,8 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { useFeedback } from "../../../lib/feedback";
 import { ShieldCheck, CalendarClock, Ticket, Lock, Tag } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
+import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { useBranding } from "../../../lib/branding";
 import { api, type PlanOffer, type PlansData, type PtBundle } from "../../../lib/api";
@@ -29,14 +19,12 @@ interface MembershipScreenProps {
 // can be bought once the current one is finished. In-app purchases are paid
 // from wallet credit; cash and card go through the front desk.
 export function MembershipScreen({ onNotificationsClick, notificationCount }: MembershipScreenProps) {
-  const feedback = useFeedback();
   const { data: brand } = useBranding();
   const [plans, setPlans] = useState<PlansData | null>(null);
   const [pt, setPt] = useState<PtBundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [buying, setBuying] = useState<PlanOffer | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([api.plans(), api.ptBundles()])
@@ -51,21 +39,6 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
   useEffect(() => {
     load();
   }, [load]);
-
-  const buy = async () => {
-    if (!buying) return;
-    setBusy(true);
-    try {
-      const r = await api.buyPlan(buying);
-      feedback.success(`${r.plan.name} is active`, "Enjoy! Book your first class from the schedule. 💪");
-      setBuying(null);
-      load();
-    } catch (e) {
-      feedback.error("Couldn't buy this plan", e instanceof Error ? e.message : "Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const plan = plans?.activePlan ?? null;
   const gym = brand?.branding.appName ?? "the gym";
@@ -174,28 +147,20 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
         </div>
       )}
 
-      <AlertDialog open={buying !== null} onOpenChange={(o) => !o && !busy && setBuying(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Buy {buying?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {buying ? `${egp(buying.price)} from your wallet. ${offerDetail(buying)}, starting today.` : ""}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={busy}
-              onClick={(e) => {
-                e.preventDefault();
-                buy();
-              }}
-            >
-              {busy ? "Buying…" : "Buy now"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmSheet
+        open={buying !== null}
+        onClose={() => setBuying(null)}
+        kicker="Buy with wallet"
+        title={`Buy ${buying?.name ?? ""}?`}
+        sub={buying ? `${egp(buying.price)} from your wallet. ${offerDetail(buying)}, starting today.` : undefined}
+        confirmLabel="Buy now"
+        doneLabel={`${buying?.name ?? "Plan"} is active`}
+        onConfirm={async () => {
+          await api.buyPlan(buying!);
+          load();
+          return "Enjoy! Book your first class from the schedule.";
+        }}
+      />
     </div>
   );
 }
