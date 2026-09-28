@@ -60,9 +60,20 @@ export function MembershipHero({ plan, pkg, onOpen }: { plan: GroupPlan | null; 
       onClick={onOpen}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen?.()}
       data-testid="membership-hero"
-      className="relative overflow-hidden rounded-[28px] px-5 pt-5 pb-[18px] text-[var(--bq-on-primary)] cursor-pointer"
+      className="relative isolate overflow-hidden rounded-[28px] px-5 pt-5 pb-[18px] text-[var(--bq-on-primary)] cursor-pointer"
       style={{ background: "var(--bq-primary)" }}
     >
+      {/* The membership card sits behind everything, off the right edge; the
+          gym colour fades over its left side so the text stays readable. */}
+      <img
+        src="/3d/membership-card.webp"
+        alt=""
+        aria-hidden
+        draggable={false}
+        decoding="async"
+        className="pointer-events-none absolute -z-10 w-[78%] max-w-[330px] right-[-22%] top-1/2 -translate-y-1/2 select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={{ background: "linear-gradient(90deg, var(--bq-primary) 38%, color-mix(in srgb, var(--bq-primary) 55%, transparent) 72%, transparent)" }} />
       <div className="flex items-center justify-between gap-3">
         <span className="truncate font-mono text-[11px] font-bold uppercase tracking-[.08em] opacity-75">{label}</span>
         {(plan || pkg) && <span className="flex-none rounded-full bg-white/20 px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-[.06em]">Active</span>}
