@@ -24,7 +24,7 @@ const ITEM = 50;
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <div
-      className="flex items-center gap-1.5 h-16 px-1.5 rounded-full backdrop-blur-2xl backdrop-saturate-150"
+      className="flex items-center gap-1.5 h-16 px-1.5 rounded-full backdrop-blur-xl backdrop-saturate-150"
       style={{
         background: "rgba(255,255,255,.55)",
         border: "1px solid rgba(255,255,255,.6)",

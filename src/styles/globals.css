@@ -287,6 +287,33 @@ body {
   overscroll-behavior-y: none;
 }
 
+/*
+ * Press feedback waits a moment before it shows, like native lists do: a
+ * finger that starts a scroll on a card or button shouldn't shrink it. The
+ * release is instant.
+ */
+[class*="active:scale"]:active {
+  transition-delay: 90ms;
+}
+
+/*
+ * Side-scrolling rows (class carousels, the day picker): they scroll only
+ * sideways, so an up/down swipe that starts on them scrolls the page; a
+ * swipe past their end doesn't carry on into the page or the browser's
+ * back gesture; no scrollbar.
+ */
+.bq-hscroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.bq-hscroll::-webkit-scrollbar {
+  display: none;
+}
+
 input,
 textarea,
 [contenteditable="true"] {

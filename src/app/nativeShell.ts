@@ -15,14 +15,10 @@ export function installNativeShell() {
   // Long-press / right-click context menu (e.g. "Copy", "Save Image").
   document.addEventListener("contextmenu", preventDefault);
 
-  // Two-finger pinch fallback for engines that don't honor touch-action.
-  document.addEventListener(
-    "touchmove",
-    (e: TouchEvent) => {
-      if (e.touches.length > 1) e.preventDefault();
-    },
-    { passive: false },
-  );
+  // No touchmove listener here on purpose: a non-passive one makes the
+  // browser wait for JavaScript before every scroll frame, which is what made
+  // scrolling stutter. The viewport meta tag and `touch-action` already stop
+  // pinch-zoom.
 }
 
 /**
@@ -76,9 +72,16 @@ export function installStatusBarSync() {
   const schedule = () => {
     if (!pending) pending = window.setTimeout(() => requestAnimationFrame(sync), 120);
   };
+  // While a scroll is moving, wait for it to settle: checking the top colour
+  // mid-scroll does layout work on every frame and makes the scroll judder.
+  let idle = 0;
+  const afterScroll = () => {
+    window.clearTimeout(idle);
+    idle = window.setTimeout(schedule, 150);
+  };
 
   new MutationObserver(schedule).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "style"] });
-  window.addEventListener("scroll", schedule, { capture: true, passive: true });
+  window.addEventListener("scroll", afterScroll, { capture: true, passive: true });
   window.addEventListener("resize", schedule);
   schedule();
 }
