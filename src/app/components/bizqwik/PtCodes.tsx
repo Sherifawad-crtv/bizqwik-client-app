@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Dumbbell, QrCode, X, CheckCircle2 } from "lucide-react";
+import { Dumbbell, QrCode, CheckCircle2 } from "lucide-react";
+import { Sheet, Kicker, SheetTitle, SheetSub, Button, useMountedSheet } from "./Sheet";
 import QRCode from "qrcode";
 import type { PtBundle } from "../../../lib/api";
 import { shortDate } from "../../../lib/plans";
@@ -34,12 +34,15 @@ export function PtCodes({ bundles }: { bundles: PtBundle[] }) {
           </div>
         ))}
       </div>
-      <AnimatePresence>{open && <PtCodeSheet bundle={open} onClose={() => setOpen(null)} />}</AnimatePresence>
+      {open && <PtCodeSheet bundle={open} onClose={() => setOpen(null)} />}
     </>
   );
 }
 
+/** The bundle's code for the coach to scan, in the same sheet as the other
+ * quick actions. */
 export function PtCodeSheet({ bundle, onClose }: { bundle: PtBundle; onClose: () => void }) {
+  const [open, close] = useMountedSheet(onClose);
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
@@ -52,41 +55,27 @@ export function PtCodeSheet({ bundle, onClose }: { bundle: PtBundle; onClose: ()
   }, [bundle.qrToken]);
 
   return (
-    <motion.div
-      role="dialog"
-      aria-label="PT code"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-white flex flex-col"
-    >
-      <div className="flex items-start justify-between px-6 pt-14">
-        <div>
-          <div className="font-display text-[24px] text-[var(--bq-text-primary)]">Your PT code</div>
-          <div className="text-[var(--bq-text-secondary)] text-sm mt-1">Show this to {bundle.coachName} when your session starts.</div>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label="Close code"
-          className="w-10 h-10 rounded-full bg-[var(--bq-neutral)] flex items-center justify-center text-[var(--bq-text-primary)] active:scale-95"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-[320px] aspect-square rounded-[1.5rem] border border-[var(--bq-neutral-dark)] p-4 flex items-center justify-center bg-white">
-          {src ? <img data-testid="pt-qr" src={src} alt="PT session code" className="w-full h-full" style={{ imageRendering: "pixelated" }} /> : <div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />}
-        </div>
-        <div className="font-display text-[18px] text-[var(--bq-text-primary)] mt-5">{bundle.name}</div>
-        <div className="text-[var(--bq-text-secondary)] text-sm mt-1">
-          {bundle.sessionsRemaining} of {bundle.sessionsIncluded} sessions left
-        </div>
-        {bundle.loggedToday && (
-          <div className="mt-4 flex items-center gap-2 text-sm rounded-[0.9rem] px-4 py-2.5 bg-[var(--bq-neutral)] text-[var(--bq-text-primary)]">
-            <CheckCircle2 className="w-4 h-4" /> Today's session is already logged
-          </div>
+    <Sheet open={open} onClose={close} label="PT code">
+      <Kicker>PT code</Kicker>
+      <SheetTitle>{bundle.name}</SheetTitle>
+      <SheetSub>
+        Show this to {bundle.coachName} when your session starts. · {bundle.sessionsRemaining} of {bundle.sessionsIncluded} sessions left
+      </SheetSub>
+      <div className="mx-auto w-full max-w-[280px] aspect-square rounded-[24px] border border-[var(--bq-neutral-dark)] p-3 flex items-center justify-center bg-white">
+        {src ? (
+          <img data-testid="pt-qr" src={src} alt="PT session code" className="w-full h-full" style={{ imageRendering: "pixelated" }} />
+        ) : (
+          <div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />
         )}
       </div>
-    </motion.div>
+      {bundle.loggedToday && (
+        <div className="mt-3 flex items-center justify-center gap-2 font-mono text-[12px] text-[var(--bq-text-secondary)]">
+          <CheckCircle2 className="w-4 h-4" /> Today's session is already logged
+        </div>
+      )}
+      <Button fullWidth size="lg" style={{ marginTop: 16 }} onClick={close} aria-label="Close code">
+        Done
+      </Button>
+    </Sheet>
   );
 }
