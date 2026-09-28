@@ -88,7 +88,7 @@ export function ScheduleScreen({ onNotificationsClick, notificationCount }: { on
                 aria-label={date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
                 onClick={() => setDay(key)}
                 className={`flex-none w-[58px] py-3 rounded-[1.25rem] flex flex-col items-center gap-0.5 transition-colors ${
-                  on ? "bg-[var(--bq-primary)] text-[var(--bq-on-primary)] shadow-[0_10px_22px_color-mix(in_srgb,var(--bq-primary)_35%,transparent)]" : "bg-white text-[var(--bq-text-secondary)]"
+                  on ? "bg-[var(--bq-primary)] text-[var(--bq-on-primary)]" : "bg-white text-[var(--bq-text-secondary)]"
                 }`}
               >
                 <span className="text-[11px] uppercase tracking-wide">{i === 0 ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" })}</span>

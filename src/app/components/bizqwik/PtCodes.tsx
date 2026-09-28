@@ -39,7 +39,7 @@ export function PtCodes({ bundles }: { bundles: PtBundle[] }) {
   );
 }
 
-function PtCodeSheet({ bundle, onClose }: { bundle: PtBundle; onClose: () => void }) {
+export function PtCodeSheet({ bundle, onClose }: { bundle: PtBundle; onClose: () => void }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;

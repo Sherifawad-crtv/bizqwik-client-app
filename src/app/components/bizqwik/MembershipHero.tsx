@@ -60,24 +60,12 @@ export function MembershipHero({ plan, pkg, onOpen }: { plan: GroupPlan | null; 
       onClick={onOpen}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen?.()}
       data-testid="membership-hero"
-      className="relative overflow-hidden rounded-[1.75rem] p-5 text-[var(--bq-on-primary)] shadow-[0_16px_36px_color-mix(in_srgb,var(--bq-primary)_35%,transparent)] active:scale-[0.99] transition-transform cursor-pointer"
+      className="relative overflow-hidden rounded-[1.75rem] p-5 text-[var(--bq-on-primary)] active:scale-[0.99] transition-transform cursor-pointer"
       style={{
         background:
           "radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--bq-primary-light), transparent 20%) 0%, transparent 55%), linear-gradient(135deg, var(--bq-primary) 0%, var(--bq-primary-dark) 100%)",
       }}
     >
-      {/* The big coin-like mark bleeding off the corner, and a few sparkles. */}
-      <div aria-hidden className="absolute -right-14 -bottom-16 h-48 w-48 rounded-full border-[12px] border-white/10 bg-white/[0.07]">
-      </div>
-      {[
-        [14, 70, 2.5],
-        [30, 90, 2],
-        [48, 78, 1.5],
-        [8, 52, 1.5],
-      ].map(([top, left, s], i) => (
-        <span key={i} aria-hidden className="absolute rounded-full bg-white/60" style={{ top: `${top}%`, left: `${left}%`, width: s * 2, height: s * 2 }} />
-      ))}
-
       <div className="relative flex items-center justify-between gap-3">
         <span className="text-[13px] opacity-85 truncate">{label}</span>
         {(plan || pkg) && <span className="flex-none rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md">Active</span>}
