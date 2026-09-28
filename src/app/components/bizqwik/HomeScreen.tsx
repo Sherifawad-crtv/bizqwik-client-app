@@ -1,6 +1,6 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Wallet, Star, CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
+import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
 import { ClassCarousel, ClassCarouselSkeleton } from "./ClassCard";
@@ -98,18 +98,14 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
         {/* Wallet + points, small */}
         <div className="mt-3 grid grid-cols-2 gap-2.5">
           <button onClick={onWalletClick} className="flex items-center gap-2.5 rounded-[1.1rem] bg-[var(--bq-neutral)] px-3.5 py-3 text-left active:scale-[0.98] transition-transform">
-            <span className="w-8 h-8 flex-none rounded-full bg-white text-[var(--bq-primary-readable)] flex items-center justify-center">
-              <Wallet className="w-4 h-4" />
-            </span>
+            <img src="/3d/wallet.webp" alt="" aria-hidden draggable={false} className="w-9 h-9 flex-none object-contain" />
             <span className="min-w-0">
               <span className="block text-[11px] text-[var(--bq-text-secondary)]">Wallet</span>
               <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{data ? egp(data.wallet) : "—"}</span>
             </span>
           </button>
           <button onClick={onPointsClick} className="flex items-center gap-2.5 rounded-[1.1rem] bg-[var(--bq-neutral)] px-3.5 py-3 text-left active:scale-[0.98] transition-transform">
-            <span className="w-8 h-8 flex-none rounded-full bg-white text-[var(--bq-accent)] flex items-center justify-center">
-              <Star className="w-4 h-4" />
-            </span>
+            <img src="/3d/points.webp" alt="" aria-hidden draggable={false} className="w-9 h-9 flex-none object-contain" />
             <span className="min-w-0">
               <span className="block text-[11px] text-[var(--bq-text-secondary)]">Points</span>
               <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{data ? data.points.toLocaleString() : "—"}</span>
