@@ -26,7 +26,7 @@ test("member: a class the plan covers books on the plan (bundle only reserves; t
     },
   });
   await expect(page.getByText("10-Class Pack")).toBeVisible();
-  await expect(page.getByText(/7 of 10 classes left/)).toBeVisible();
+  await expect(page.getByTestId("membership-hero")).toContainText("/ 10 classes left");
   await page.getByRole("button", { name: "Schedule" }).click();
   await expect(page.getByText("On your plan")).toBeVisible();
 
@@ -34,7 +34,7 @@ test("member: a class the plan covers books on the plan (bundle only reserves; t
   await expect(page.getByText("Included in 10-Class Pack")).toBeVisible();
   await expect(page.getByText(/Reserves your spot\. 1 of your 7 sessions is used when you check in/)).toBeVisible();
   await page.getByRole("button", { name: "Book with my plan" }).click();
-  await expect(page.getByText("Spot reserved — a session is used when you check in")).toBeVisible();
+  await expect(page.getByTestId("sheet-success")).toContainText("Spot reserved — a session is used when you check in");
   expect(sent).toEqual([{}]);
 });
 
@@ -58,11 +58,11 @@ test("member: a drop-in while a plan is running asks first, then charges", async
   await expect(page.getByText("Your Yoga · Monthly doesn't include this class, so it's paid per visit.")).toBeVisible();
   await page.getByRole("button", { name: /Pay from wallet/ }).click();
 
-  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "You still have a plan running" })).toBeVisible();
   await expect(page.getByText("You still have a plan running")).toBeVisible();
   await expect(page.getByText(/You still have Yoga · Monthly/)).toBeVisible();
   await page.getByRole("button", { name: "Pay the drop-in" }).click();
-  await expect(page.getByTestId("feedback")).toContainText("Paid from your wallet.");
+  await expect(page.getByTestId("sheet-success")).toContainText("Paid from your wallet.");
 
   expect(sent).toHaveLength(2);
   expect(sent[0]).toMatchObject({ payMethod: "wallet", confirmActivePlan: false });
@@ -87,7 +87,7 @@ test("member: buys a class bundle from the shop with wallet credit", async ({ pa
   await page.getByRole("button", { name: "Buy with wallet" }).nth(1).click();
   await expect(page.getByText("Buy 10-Class Pack?")).toBeVisible();
   await page.getByRole("button", { name: "Buy now" }).click();
-  await expect(page.getByTestId("feedback")).toContainText("10-Class Pack is active");
+  await expect(page.getByTestId("sheet-success")).toContainText("10-Class Pack is active");
   expect(bought).toEqual({ planTypeId: "pt-10" });
 });
 

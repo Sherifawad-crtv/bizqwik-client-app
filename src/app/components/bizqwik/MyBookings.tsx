@@ -1,17 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { Calendar as CalendarIcon, X, CalendarPlus } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
-import { useFeedback } from "../../../lib/feedback";
+import { ConfirmSheet } from "./Sheet";
 import { defaultClassImage } from "../../../lib/plans";
 import { api, type Booking } from "../../../lib/api";
 
@@ -32,12 +22,10 @@ function whenLabel(iso: string | null): string {
 }
 
 export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
-  const feedback = useFeedback();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<Booking | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -46,30 +34,6 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => { load(); }, [load]);
-
-  const doCancel = async () => {
-    if (!cancelling) return;
-    setBusy(true);
-    try {
-      const res = await api.cancelBooking(cancelling.id);
-      feedback.success(
-        "Booking cancelled",
-        res.refundedToWallet > 0
-          ? `${Math.round(res.refundedToWallet)} EGP is back in your wallet.`
-          : res.planCreditReturned
-            ? "The session is back on your bundle."
-            : cancelling.coverage === "plan"
-              ? "Nothing was used from your plan."
-              : "Your spot is free for someone else.",
-      );
-      setCancelling(null);
-      load();
-    } catch (e) {
-      feedback.error("Couldn't cancel", e instanceof Error ? e.message : "Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const upcoming = bookings.filter((b) => b.attendance === "booked");
   const past = bookings.filter((b) => b.attendance !== "booked");
@@ -97,24 +61,34 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
         {past.map((b) => <Row key={b.id} b={b} />)}
       </div>
 
-      <AlertDialog open={cancelling !== null} onOpenChange={(o) => !o && setCancelling(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {cancelling?.coverage === "plan"
-                ? "This class is on your plan. Cancelling frees your spot — nothing is used from your plan."
-                : cancelling?.payStatus === "paid" && cancelling?.payMethod === "wallet"
-                  ? "Your payment will be refunded to your wallet."
-                  : "This will free up your spot."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Keep it</AlertDialogCancel>
-            <AlertDialogAction disabled={busy} onClick={doCancel}>Cancel booking</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmSheet
+        open={cancelling !== null}
+        onClose={() => setCancelling(null)}
+        kicker="Cancel booking"
+        title={`Cancel ${cancelling?.classTitle ?? "this booking"}?`}
+        sub={
+          cancelling?.coverage === "plan"
+            ? "This class is on your plan. Cancelling frees your spot — nothing is used from your plan."
+            : cancelling?.payStatus === "paid" && cancelling?.payMethod === "wallet"
+              ? "Your payment will be refunded to your wallet."
+              : "This will free up your spot."
+        }
+        confirmLabel="Cancel booking"
+        doneLabel="Booking cancelled"
+        cancelLabel="Keep it"
+        danger
+        onConfirm={async () => {
+          const res = await api.cancelBooking(cancelling!.id);
+          load();
+          return res.refundedToWallet > 0
+            ? `${Math.round(res.refundedToWallet)} EGP is back in your wallet.`
+            : res.planCreditReturned
+              ? "The session is back on your bundle."
+              : cancelling!.coverage === "plan"
+                ? "Nothing was used from your plan."
+                : "Your spot is free for someone else.";
+        }}
+      />
     </div>
   );
 }

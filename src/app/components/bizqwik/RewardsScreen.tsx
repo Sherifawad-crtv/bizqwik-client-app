@@ -1,18 +1,8 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { useFeedback } from "../../../lib/feedback";
 import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
+import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { api, type PointsData } from "../../../lib/api";
 
@@ -44,12 +34,10 @@ function fmtDay(iso: string): string {
 // redemption minimum, the next expiry, and redemption into wallet credit in
 // whole EGP (leftover points stay).
 export function RewardsScreen({ onNotificationsClick, notificationCount, onBack }: RewardsScreenProps) {
-  const feedback = useFeedback();
   const [data, setData] = useState<PointsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     api.points().then((d) => { setData(d); setError(null); }).catch((e) => setError(e instanceof Error ? e.message : "Couldn't load your points.")).finally(() => setLoading(false));
@@ -63,20 +51,6 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
   const redeemPoints = data ? redeemEgp * data.rate : 0;
   const canRedeem = !!data && on && data.total >= data.minRedeem && redeemEgp >= 1;
   const progress = data && data.minRedeem > 0 ? Math.min(1, data.total / data.minRedeem) : 1;
-
-  const redeem = async () => {
-    setBusy(true);
-    try {
-      const r = await api.redeemPoints();
-      feedback.success(`${n(r.egpCredited)} EGP added to your wallet 🎉`, `You redeemed ${n(r.pointsSpent)} points.`);
-      setConfirming(false);
-      load();
-    } catch (e) {
-      feedback.error("Couldn't redeem your points", e instanceof Error ? e.message : "Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div className="min-h-full bg-white pb-28">
@@ -163,28 +137,20 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
         </div>
       </div>
 
-      <AlertDialog open={confirming} onOpenChange={(o) => !o && !busy && setConfirming(false)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Redeem {n(redeemEgp)} EGP?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {`${n(redeemPoints)} points become ${n(redeemEgp)} EGP in your wallet.${data && data.total - redeemPoints > 0 ? ` The other ${n(data.total - redeemPoints)} point${data.total - redeemPoints === 1 ? "" : "s"} stay for next time.` : ""}`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={busy}
-              onClick={(e) => {
-                e.preventDefault();
-                redeem();
-              }}
-            >
-              {busy ? "Redeeming…" : "Redeem"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmSheet
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        kicker="Redeem points"
+        title={`Redeem ${n(redeemEgp)} EGP?`}
+        sub={`${n(redeemPoints)} points become ${n(redeemEgp)} EGP in your wallet.${data && data.total - redeemPoints > 0 ? ` The other ${n(data.total - redeemPoints)} point${data.total - redeemPoints === 1 ? "" : "s"} stay for next time.` : ""}`}
+        confirmLabel="Redeem"
+        onConfirm={async () => {
+          const r = await api.redeemPoints();
+          load();
+          return `${n(r.egpCredited)} EGP added to your wallet`;
+        }}
+        doneLabel="Points redeemed"
+      />
     </div>
   );
 }

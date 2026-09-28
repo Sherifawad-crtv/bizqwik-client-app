@@ -95,7 +95,8 @@ test("quick actions open the action itself, right on Home", async ({ page }) => 
   await expect(book.getByRole("button", { name: /Power Yoga/ })).toHaveCount(0); // already booked
   await book.getByRole("button", { name: /Boxing/ }).click();
   await expect(page.getByRole("dialog", { name: "Boxing" })).toContainText("Pay from wallet");
-  await page.getByRole("button", { name: "Close" }).click();
+  await page.mouse.click(200, 30); // tap outside to dismiss
+  await expect(page.getByRole("dialog", { name: "Boxing" })).toHaveCount(0);
 
   // My bookings: upcoming ones, cancellable here.
   await actions.getByRole("button", { name: "My bookings" }).click();
@@ -111,7 +112,7 @@ test("no plan: Get a plan opens the plans to buy", async ({ page }) => {
   await expect(sheet).toContainText("All-Access · 1 Month");
   await sheet.getByRole("button", { name: "Buy with wallet" }).nth(1).click();
   await page.getByRole("button", { name: "Buy now" }).click();
-  await expect(page.getByTestId("feedback")).toContainText("10-Class Pack is active");
+  await expect(page.getByTestId("sheet-success")).toContainText("10-Class Pack is active");
 });
 
 test("class rows line up with the page grid", async ({ page }) => {

@@ -1,9 +1,10 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, BellRing, CalendarCheck, CalendarX, CheckCircle2, Ticket, BadgeCheck, Dumbbell, Wallet, AlarmClock, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarX, CheckCircle2, Ticket, BadgeCheck, Dumbbell, Wallet, AlarmClock, Bell } from "lucide-react";
 import { api, type AppNotification } from "../../../lib/api";
 import { useFeedback } from "../../../lib/feedback";
-import { enablePush, isIOS, pushState, type PushState } from "../../../lib/push";
+import { enablePush, pushState, type PushState } from "../../../lib/push";
+import { Button, Kicker, SheetSub } from "./Sheet";
 
 const ICONS: Record<string, typeof Bell> = {
   booked: CalendarCheck,
@@ -87,28 +88,21 @@ export function NotificationsScreen({ onBack, onRead }: { onBack: () => void; on
       </div>
 
       {push && push !== "on" && push !== "unsupported" && (
-        <div className="mx-6 mb-5 rounded-[1.5rem] p-5 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)]" data-testid="push-card">
-          <div className="flex items-start gap-3">
-            <span className="w-10 h-10 flex-none rounded-full bg-white/20 flex items-center justify-center">
-              {push === "blocked" ? <BellOff className="w-5 h-5" /> : <BellRing className="w-5 h-5" />}
-            </span>
-            <div className="min-w-0">
-              <div className="font-display text-[17px]">{push === "blocked" ? "Notifications are blocked" : "Get notified on your phone"}</div>
-              <div className="text-[13px] opacity-85 mt-0.5">
-                {push === "install"
-                  ? `On iPhone, tap Share, then "Add to Home Screen", and open the app from there to turn notifications on.`
-                  : push === "blocked"
-                    ? "Allow notifications for this app in your phone's settings to get class reminders."
-                    : "Class reminders, sessions left, refunds and plan renewals — as they happen."}
-              </div>
-            </div>
-          </div>
+        <div className="mx-6 mb-5 rounded-[28px] border border-[var(--bq-neutral-dark)] p-5" data-testid="push-card">
+          <Kicker>{push === "blocked" ? "Notifications blocked" : "Phone notifications"}</Kicker>
+          <div className="font-display text-[18px] text-[var(--bq-text-primary)] mt-1 mb-1">{push === "blocked" ? "Allow them in your settings" : "Get notified on your phone"}</div>
+          <SheetSub>
+            {push === "install"
+              ? `On iPhone, tap Share, then "Add to Home Screen", and open the app from there to turn notifications on (iOS 16.4+).`
+              : push === "blocked"
+                ? "Allow notifications for this app in your phone's settings to get class reminders."
+                : "Class reminders, sessions left, refunds and plan renewals — as they happen."}
+          </SheetSub>
           {push === "off" && (
-            <button onClick={turnOn} disabled={enabling} className="mt-4 w-full h-11 rounded-[1rem] bg-white text-[var(--bq-primary-readable)] font-semibold disabled:opacity-60 active:scale-[0.98] transition-transform">
+            <Button fullWidth onClick={turnOn} disabled={enabling}>
               {enabling ? "Turning on…" : "Turn on notifications"}
-            </button>
+            </Button>
           )}
-          {push === "install" && isIOS() && <div className="mt-3 text-[12px] opacity-75">Works on iOS 16.4 and later.</div>}
         </div>
       )}
 

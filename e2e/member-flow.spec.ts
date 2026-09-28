@@ -34,10 +34,10 @@ test("member: intro -> sign in -> home -> book -> bookings -> wallet", async ({ 
   await card.click();
   await expect(page.getByText("Pay from wallet")).toBeVisible();
   await page.getByRole("button", { name: /Pay from wallet/ }).click();
-  const done = page.getByTestId("feedback");
+  const done = page.getByTestId("sheet-success");
   await expect(done).toContainText("You're booked!");
   await expect(done).toContainText(/paid from your wallet/i);
-  await expect(done).toBeHidden({ timeout: 8000 }); // a success closes itself
+  await expect(done).toHaveCount(0, { timeout: 8000 }); // the check shows, then the sheet closes
 
   // Bottom nav -> Bookings.
   await page.getByRole("button", { name: "Bookings", exact: true }).click();
