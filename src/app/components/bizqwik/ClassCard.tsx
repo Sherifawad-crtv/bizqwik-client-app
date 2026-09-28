@@ -50,7 +50,7 @@ export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOp
       onClick={() => onOpen(cls)}
       aria-label={`${cls.title}, ${timeLabel(start)}${cls.booked ? ", booked" : ""}`}
       data-testid="class-card"
-      className={`relative flex-none aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-neutral-900 text-left shadow-[0_12px_28px_rgba(0,0,0,.18)] active:scale-[0.98] transition-transform ${className}`}
+      className={`relative flex-none aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-neutral-900 text-left active:scale-[0.98] transition-transform ${className}`}
     >
       <img src={img} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${own ? "" : "grayscale contrast-[1.05]"}`} />
       {!own && <div className="absolute inset-0 bg-[var(--bq-primary)] mix-blend-multiply opacity-30" />}
@@ -81,19 +81,23 @@ export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOp
   );
 }
 
-/** A side-scrolling row of class cards; the next card peeks in. */
+/** A side-scrolling row of class cards; the next card peeks in. The row
+ * bleeds to the screen edges while scrolling, but cards snap to the page's
+ * 24px grid line (scroll padding), first and last alike. */
 export function ClassCarousel({ classes, onOpen, label }: { classes: GymClass[]; onOpen: (c: GymClass) => void; label?: string }) {
   return (
     <div
       role="list"
       aria-label={label}
-      className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {classes.map((c) => (
         <div role="listitem" key={c.id} className="snap-start flex-none w-[70%] max-w-[260px]">
           <ClassCard cls={c} onOpen={onOpen} className="w-full" />
         </div>
       ))}
+      {/* Flex rows drop their end padding when scrolled; this keeps the gutter. */}
+      <div aria-hidden className="w-3 flex-none" />
     </div>
   );
 }

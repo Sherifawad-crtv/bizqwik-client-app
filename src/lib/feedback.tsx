@@ -72,7 +72,7 @@ function FeedbackModal({ msg, onClose }: { msg: Message; onClose: () => void }) 
   const badge =
     msg.tone === "error"
       ? "bg-[#fef3f2] text-[#d92d20]"
-      : "bg-[var(--bq-primary)] text-[var(--bq-on-primary)] shadow-[0_10px_24px_color-mix(in_srgb,var(--bq-primary)_35%,transparent)]";
+      : "bg-[var(--bq-primary)] text-[var(--bq-on-primary)]";
 
   return (
     <motion.div
@@ -89,7 +89,7 @@ function FeedbackModal({ msg, onClose }: { msg: Message; onClose: () => void }) 
         aria-label={msg.label ?? msg.title}
         data-testid="feedback"
         data-tone={msg.tone}
-        className="relative w-full max-w-[340px] overflow-hidden rounded-[1.75rem] bg-white px-6 pt-7 pb-6 text-center shadow-[0_24px_60px_rgba(0,0,0,.25)]"
+        className="relative w-full max-w-[340px] overflow-hidden rounded-[1.75rem] bg-white px-6 pt-7 pb-6 text-center"
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}

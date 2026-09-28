@@ -34,7 +34,7 @@ test("home: the plan is the hero; today's classes are a swipeable row of photo c
   await expect(hero).toContainText("10-Class Pack");
   await expect(hero).toContainText("7");
   await expect(hero).toContainText("/ 10 classes left");
-  await expect(page.getByRole("group", { name: "Quick actions" }).getByRole("button")).toHaveText(["Book a class", "My plan", "My bookings"]);
+  await expect(page.getByRole("group", { name: "Quick actions" }).getByRole("button")).toHaveText(["Book a class", "Check in", "My bookings"]);
 
   const row = page.getByRole("list", { name: "Today's classes" });
   await expect(row.getByTestId("class-card")).toHaveCount(3); // not tomorrow's
@@ -70,4 +70,54 @@ test("notifications: the bell shows unread, the list opens and marks them read",
   await expect.poll(() => readAll).toEqual({});
   await page.getByRole("button", { name: "Back" }).click();
   await expect(bell).not.toContainText("1");
+});
+
+test("quick actions open the action itself, right on Home", async ({ page }) => {
+  await signIn(page, {
+    home: { groupPlan: null, package: { id: "pkg-1", sessionsRemaining: 5, sessionsIncluded: 8, expiryDate: "2026-12-01", status: "active" } },
+    pt: [{ id: "pt-1", name: "8 Sessions", coachName: "Coach Nour", sessionsRemaining: 5, sessionsIncluded: 8, expiryDate: "2026-12-01", qrToken: "bqpt_abc", loggedToday: false }],
+  });
+  const actions = page.getByRole("group", { name: "Quick actions" });
+  await expect(actions.getByRole("button")).toHaveText(["Book a class", "My PT code", "My bookings"]);
+
+  // PT code: the QR straight away.
+  await actions.getByRole("button", { name: "My PT code" }).click();
+  const code = page.getByRole("dialog", { name: "PT code" });
+  await expect(code.getByTestId("pt-qr")).toBeVisible();
+  await expect(code).toContainText("Show this to Coach Nour");
+  await code.getByRole("button", { name: "Close code" }).click();
+  await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
+
+  // Book a class: the next classes; one tap opens booking for it.
+  await actions.getByRole("button", { name: "Book a class" }).click();
+  const book = page.getByRole("dialog", { name: "Book a class" });
+  await expect(book.getByRole("button", { name: /Sunrise HIIT/ })).toBeVisible();
+  await expect(book.getByRole("button", { name: /Power Yoga/ })).toHaveCount(0); // already booked
+  await book.getByRole("button", { name: /Boxing/ }).click();
+  await expect(page.getByRole("dialog", { name: "Boxing" })).toContainText("Pay from wallet");
+  await page.getByRole("button", { name: "Close" }).click();
+
+  // My bookings: upcoming ones, cancellable here.
+  await actions.getByRole("button", { name: "My bookings" }).click();
+  const mine = page.getByRole("dialog", { name: "My bookings" });
+  await expect(mine).toContainText("Morning HIIT");
+  await expect(mine.getByRole("button", { name: "Cancel" })).toBeVisible();
+});
+
+test("no plan: Get a plan opens the plans to buy", async ({ page }) => {
+  await signIn(page, { home: { groupPlan: null, package: null } });
+  await page.getByRole("group", { name: "Quick actions" }).getByRole("button", { name: "Get a plan" }).click();
+  const sheet = page.getByRole("dialog", { name: "Get a plan" });
+  await expect(sheet).toContainText("All-Access · 1 Month");
+  await sheet.getByRole("button", { name: "Buy with wallet" }).nth(1).click();
+  await page.getByRole("button", { name: "Buy now" }).click();
+  await expect(page.getByTestId("feedback")).toContainText("10-Class Pack is active");
+});
+
+test("class rows line up with the page grid", async ({ page }) => {
+  await signIn(page);
+  const row = page.getByRole("list", { name: "Today's classes" });
+  const heading = await page.getByRole("heading", { name: "Today" }).boundingBox();
+  const first = await row.getByTestId("class-card").first().boundingBox();
+  expect(Math.round(first!.x)).toBe(Math.round(heading!.x));
 });

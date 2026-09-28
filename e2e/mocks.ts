@@ -61,7 +61,7 @@ export const OFFERS = [
 
 const BOOKINGS = {
   bookings: [
-    { id: "bk-1", classId: "cls-1", payMethod: "wallet", payStatus: "paid", attendance: "booked", price: 150, bookedAt: "2026-09-24T10:00:00Z", classTitle: "Morning HIIT", classStartsAt: "2026-09-25T08:00:00Z" },
+    { id: "bk-1", classId: "cls-1", payMethod: "wallet", payStatus: "paid", attendance: "booked", price: 150, bookedAt: "2026-09-24T10:00:00Z", classTitle: "Morning HIIT", classStartsAt: inHours(72) },
   ],
 };
 

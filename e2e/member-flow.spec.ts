@@ -26,8 +26,8 @@ test("member: intro -> sign in -> home -> book -> bookings -> wallet", async ({ 
   await expect(page.getByTestId("membership-hero")).toBeVisible();
   await expect(page.getByRole("button", { name: "My PT code" })).toBeVisible();
 
-  // Quick action → Schedule; the whole class card opens booking.
-  await page.getByRole("button", { name: "Book a class" }).click();
+  // The Schedule tab: the whole class card opens booking.
+  await page.getByRole("button", { name: "Schedule", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
   const card = page.getByRole("button", { name: /Morning HIIT/ });
   await expect(card.getByTestId("going")).toHaveText(/AK.*MS.*LH.*\+4/);

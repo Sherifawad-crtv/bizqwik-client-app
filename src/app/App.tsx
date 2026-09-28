@@ -179,6 +179,7 @@ function App() {
           onPlanClick={() => go("membership")}
           onScheduleClick={() => go("schedule")}
           onBookingsClick={() => go("bookings")}
+          onCheckIn={() => setScanning(true)}
           {...bell}
         />
       )}

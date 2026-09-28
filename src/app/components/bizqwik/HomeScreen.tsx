@@ -1,11 +1,15 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Wallet, Star, CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX } from "lucide-react";
+import { Wallet, Star, CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
 import { ClassCarousel } from "./ClassCard";
 import { BookingSheet } from "./BookingSheet";
-import { api, type HomeData, type GymClass } from "../../../lib/api";
+import { BookQuickSheet, BookingsQuickSheet, PlanQuickSheet, PtPickSheet } from "./QuickSheets";
+import { PtCodeSheet } from "./PtCodes";
+import { useFeedback } from "../../../lib/feedback";
+import { api, type HomeData, type GymClass, type PtBundle } from "../../../lib/api";
 import { dayKey, egp } from "../../../lib/plans";
 
 interface HomeScreenProps {
@@ -15,13 +19,18 @@ interface HomeScreenProps {
   onPlanClick?: () => void;
   onScheduleClick?: () => void;
   onBookingsClick?: () => void;
+  onCheckIn?: () => void;
   onNotificationsClick: () => void;
   notificationCount: number;
 }
 
 // Home: the member's plan up top (the hero), wallet and points as small
 // chips, three quick actions, then today's classes as a swipeable row.
-export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onNotificationsClick, notificationCount }: HomeScreenProps) {
+export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onCheckIn, onNotificationsClick, notificationCount }: HomeScreenProps) {
+  const feedback = useFeedback();
+  const [quick, setQuick] = useState<"book" | "plan" | "bookings" | null>(null);
+  const [ptPick, setPtPick] = useState<PtBundle[] | null>(null);
+  const [ptCode, setPtCode] = useState<PtBundle | null>(null);
   const [data, setData] = useState<HomeData | null>(null);
   const [classes, setClasses] = useState<GymClass[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,13 +56,28 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
   const pkg = data?.package && data.package.status === "active" ? data.package : null;
   const initials = userName.slice(0, 1).toUpperCase();
 
+  // Quick actions do the thing right here: the PT code opens at once, plans
+  // and bookings open in a sheet. With a plan (and no PT) the middle one is
+  // check-in; the plan itself is a tap on the card above.
+  const showPtCode = async () => {
+    try {
+      const { bundles } = await api.ptBundles();
+      if (bundles.length === 1) setPtCode(bundles[0]);
+      else if (bundles.length > 1) setPtPick(bundles);
+      else feedback.info("No PT code right now", "Your PT bundle has no sessions left to log. Ask the front desk about renewing.");
+    } catch (e) {
+      feedback.error("Couldn't open your PT code", e instanceof Error ? e.message : "Please try again.");
+    }
+  };
   const middle = pkg
-    ? { label: "My PT code", icon: <QrCode className="w-5 h-5" />, onClick: onPlanClick }
-    : { label: plan ? "My plan" : "Get a plan", icon: <BadgeCheck className="w-5 h-5" />, onClick: onPlanClick };
+    ? { label: "My PT code", icon: <QrCode className="w-5 h-5" />, onClick: showPtCode }
+    : plan
+      ? { label: "Check in", icon: <ScanLine className="w-5 h-5" />, onClick: onCheckIn }
+      : { label: "Get a plan", icon: <BadgeCheck className="w-5 h-5" />, onClick: () => setQuick("plan") };
   const actions = [
-    { label: "Book a class", icon: <CalendarPlus className="w-5 h-5" />, onClick: onScheduleClick },
+    { label: "Book a class", icon: <CalendarPlus className="w-5 h-5" />, onClick: () => setQuick("book") },
     middle,
-    { label: "My bookings", icon: <Ticket className="w-5 h-5" />, onClick: onBookingsClick },
+    { label: "My bookings", icon: <Ticket className="w-5 h-5" />, onClick: () => setQuick("bookings") },
   ];
 
   return (
@@ -134,6 +158,52 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
         )}
         {today.length > 0 && <ClassCarousel classes={today} onOpen={setBooking} label="Today's classes" />}
       </div>
+
+      {quick === "book" && (
+        <BookQuickSheet
+          classes={classes}
+          onClose={() => setQuick(null)}
+          onPick={(c) => {
+            setQuick(null);
+            setBooking(c);
+          }}
+          onSeeAll={() => {
+            setQuick(null);
+            onScheduleClick?.();
+          }}
+        />
+      )}
+      {quick === "plan" && (
+        <PlanQuickSheet
+          onClose={() => setQuick(null)}
+          onBought={() => {
+            setQuick(null);
+            load();
+          }}
+        />
+      )}
+      {quick === "bookings" && (
+        <BookingsQuickSheet
+          onClose={() => setQuick(null)}
+          onChanged={load}
+          onBook={() => setQuick("book")}
+          onSeeAll={() => {
+            setQuick(null);
+            onBookingsClick?.();
+          }}
+        />
+      )}
+      {ptPick && (
+        <PtPickSheet
+          bundles={ptPick}
+          onClose={() => setPtPick(null)}
+          onPick={(b) => {
+            setPtPick(null);
+            setPtCode(b);
+          }}
+        />
+      )}
+      <AnimatePresence>{ptCode && <PtCodeSheet bundle={ptCode} onClose={() => setPtCode(null)} />}</AnimatePresence>
 
       {booking && (
         <BookingSheet
