@@ -2,7 +2,7 @@ import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarX } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
-import { ClassCarousel } from "./ClassCard";
+import { ClassCarousel, ClassCarouselSkeleton } from "./ClassCard";
 import { BookingSheet } from "./BookingSheet";
 import { api, type GroupPlan, type GymClass } from "../../../lib/api";
 import { dayKey, timeLabel } from "../../../lib/plans";
@@ -76,7 +76,7 @@ export function ScheduleScreen({ onNotificationsClick, notificationCount }: { on
           </div>
           <NotificationBell count={notificationCount} onClick={onNotificationsClick} />
         </div>
-        <div className="-mx-6 mt-4 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Pick a day">
+        <div className="bq-hscroll -mx-6 mt-4 flex gap-2 px-6 pb-1" role="tablist" aria-label="Pick a day">
           {days.map(({ key, date }, i) => {
             const on = key === day;
             const count = byDay.get(key)?.length ?? 0;
@@ -102,8 +102,9 @@ export function ScheduleScreen({ onNotificationsClick, notificationCount }: { on
 
       <div className="px-6 mt-6">
         {loading && (
-          <div className="py-10 flex justify-center">
-            <div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />
+          <div>
+            <div className="mb-3 h-7 w-24 rounded-lg bg-[var(--bq-neutral)] animate-pulse" />
+            <ClassCarouselSkeleton />
           </div>
         )}
         {error && (

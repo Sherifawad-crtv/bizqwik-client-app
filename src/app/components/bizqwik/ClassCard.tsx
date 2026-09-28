@@ -52,12 +52,12 @@ export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOp
       data-testid="class-card"
       className={`relative flex-none aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-neutral-900 text-left active:scale-[0.98] transition-transform ${className}`}
     >
-      <img src={img} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${own ? "" : "grayscale contrast-[1.05]"}`} />
+      <img src={img} alt="" loading="lazy" decoding="async" draggable={false} className={`absolute inset-0 h-full w-full object-cover ${own ? "" : "grayscale contrast-[1.05]"}`} />
       {!own && <div className="absolute inset-0 bg-[var(--bq-primary)] mix-blend-multiply opacity-30" />}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" />
 
       <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-2">
-        <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md">{chip}</span>
+        <span className="rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">{chip}</span>
         {cls.booked && (
           <span className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--bq-primary-readable)]">
             <Check className="h-3 w-3" strokeWidth={3} /> Booked
@@ -81,23 +81,37 @@ export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOp
   );
 }
 
+const ROW = "bq-hscroll -mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 px-6";
+const SLIDE = "snap-start flex-none w-[70%] max-w-[260px]";
+
 /** A side-scrolling row of class cards; the next card peeks in. The row
  * bleeds to the screen edges while scrolling, but cards snap to the page's
- * 24px grid line (scroll padding), first and last alike. */
+ * 24px grid line (scroll padding), first and last alike. A fling can pass
+ * several cards and still lands on one. */
 export function ClassCarousel({ classes, onOpen, label }: { classes: GymClass[]; onOpen: (c: GymClass) => void; label?: string }) {
   return (
-    <div
-      role="list"
-      aria-label={label}
-      className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
+    <div role="list" aria-label={label} className={ROW}>
       {classes.map((c) => (
-        <div role="listitem" key={c.id} className="snap-start flex-none w-[70%] max-w-[260px]">
-          <ClassCard cls={c} onOpen={onOpen} className="w-full" />
+        <div role="listitem" key={c.id} className={SLIDE}>
+          <ClassCard cls={c} onOpen={onOpen} className="block w-full" />
         </div>
       ))}
       {/* Flex rows drop their end padding when scrolled; this keeps the gutter. */}
       <div aria-hidden className="w-3 flex-none" />
+    </div>
+  );
+}
+
+/** Placeholder row the same size as the real one, so nothing jumps when the
+ * classes arrive. */
+export function ClassCarouselSkeleton() {
+  return (
+    <div aria-hidden className={ROW} data-testid="carousel-skeleton">
+      {[0, 1].map((i) => (
+        <div key={i} className={SLIDE}>
+          <div className="aspect-[4/5] w-full rounded-[1.75rem] bg-[var(--bq-neutral)] animate-pulse" />
+        </div>
+      ))}
     </div>
   );
 }

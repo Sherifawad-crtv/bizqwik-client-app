@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Wallet, Star, CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
-import { ClassCarousel } from "./ClassCard";
+import { ClassCarousel, ClassCarouselSkeleton } from "./ClassCard";
 import { BookingSheet } from "./BookingSheet";
 import { BookQuickSheet, BookingsQuickSheet, PlanQuickSheet, PtPickSheet } from "./QuickSheets";
 import { PtCodeSheet } from "./PtCodes";
@@ -137,11 +137,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
           </button>
         </div>
 
-        {loading && (
-          <div className="py-10 flex justify-center">
-            <div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />
-          </div>
-        )}
+        {loading && <ClassCarouselSkeleton />}
         {error && (
           <div className="text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>
             {error}
