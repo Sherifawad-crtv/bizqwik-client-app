@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { toast } from "sonner";
+import { useFeedback } from "../../../lib/feedback";
 import { ShieldCheck, CalendarClock, Ticket, Lock, Tag } from "lucide-react";
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ interface MembershipScreenProps {
 // can be bought once the current one is finished. In-app purchases are paid
 // from wallet credit; cash and card go through the front desk.
 export function MembershipScreen({ onNotificationsClick, notificationCount }: MembershipScreenProps) {
+  const feedback = useFeedback();
   const { data: brand } = useBranding();
   const [plans, setPlans] = useState<PlansData | null>(null);
   const [pt, setPt] = useState<PtBundle[]>([]);
@@ -56,11 +57,11 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
     setBusy(true);
     try {
       const r = await api.buyPlan(buying);
-      toast.success(`${r.plan.name} is active — enjoy! 💪`);
+      feedback.success(`${r.plan.name} is active`, "Enjoy! Book your first class from the schedule. 💪");
       setBuying(null);
       load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't buy this plan.");
+      feedback.error("Couldn't buy this plan", e instanceof Error ? e.message : "Please try again.");
     } finally {
       setBusy(false);
     }

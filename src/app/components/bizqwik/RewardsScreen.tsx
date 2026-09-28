@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { toast } from "sonner";
+import { useFeedback } from "../../../lib/feedback";
 import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "lucide-react";
 import {
   AlertDialog,
@@ -44,6 +44,7 @@ function fmtDay(iso: string): string {
 // redemption minimum, the next expiry, and redemption into wallet credit in
 // whole EGP (leftover points stay).
 export function RewardsScreen({ onNotificationsClick, notificationCount, onBack }: RewardsScreenProps) {
+  const feedback = useFeedback();
   const [data, setData] = useState<PointsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,11 +68,11 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
     setBusy(true);
     try {
       const r = await api.redeemPoints();
-      toast.success(`${n(r.egpCredited)} EGP added to your wallet 🎉`);
+      feedback.success(`${n(r.egpCredited)} EGP added to your wallet 🎉`, `You redeemed ${n(r.pointsSpent)} points.`);
       setConfirming(false);
       load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't redeem your points.");
+      feedback.error("Couldn't redeem your points", e instanceof Error ? e.message : "Please try again.");
     } finally {
       setBusy(false);
     }

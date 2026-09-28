@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Icon, type IconName } from "./Icon";
 
-type NavItem = "home" | "bookings" | "profile";
+export type NavItem = "home" | "schedule" | "bookings" | "profile";
 
 interface BottomNavProps {
   active: NavItem;
@@ -10,11 +10,12 @@ interface BottomNavProps {
 
 const navItems: { id: NavItem; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
-  { id: "bookings", label: "Bookings", icon: "calendar" },
+  { id: "schedule", label: "Schedule", icon: "calendar" },
+  { id: "bookings", label: "Bookings", icon: "ticket" },
   { id: "profile", label: "Profile", icon: "account" },
 ];
 
-const ITEM = 52;
+const ITEM = 50;
 
 // Floating frosted-glass pill, matching the business app's BottomNav
 // language (blur + translucency, a sliding pill behind the active tab,

@@ -3,6 +3,7 @@ import App from "./app/App.tsx";
 import { installNativeShell, installStatusBarSync } from "./app/nativeShell.ts";
 import { BrandingProvider } from "./lib/branding";
 import { AuthProvider } from "./lib/auth";
+import { FeedbackProvider } from "./lib/feedback";
 import { startAutoUpdate } from "./lib/autoUpdate";
 import "./styles/index.css";
 
@@ -46,7 +47,9 @@ void ensureSecureTopLevel().then((ok) => {
   createRoot(document.getElementById("root")!).render(
     <BrandingProvider>
       <AuthProvider>
-        <App />
+        <FeedbackProvider>
+          <App />
+        </FeedbackProvider>
       </AuthProvider>
     </BrandingProvider>,
   );

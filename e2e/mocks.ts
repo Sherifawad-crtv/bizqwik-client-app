@@ -28,7 +28,12 @@ export const MEMBER = { id: "client-zz", orgId: "org-revolt", name: "Zara Halim"
 const inHours = (h: number) => new Date(Date.now() + h * 3600_000).toISOString();
 
 export const CLASSES = [
-  { id: "cls-1", seriesId: "s-hiit", title: "Morning HIIT", description: "45 min conditioning", startsAt: inHours(3), price: 150, status: "active", booked: false, coverage: "drop_in" },
+  { id: "cls-1", seriesId: "s-hiit", title: "Morning HIIT", description: "45 min conditioning", startsAt: inHours(3), price: 150, status: "active", booked: false, coverage: "drop_in", imageUrl: null, going: { count: 7, initials: ["AK", "MS", "LH", "NR"] } },
+];
+
+export const NOTIFICATIONS = [
+  { id: "n-1", type: "class_cancelled", title: "Morning HIIT is cancelled", body: "The gym cancelled Morning HIIT on Mon, Sep 28 · 7:00 PM. 150 EGP is back in your wallet. Sorry about that!", url: null, read: false, createdAt: inHours(-1) },
+  { id: "n-2", type: "checked_in", title: "Checked in 💪", body: "1 session used · 7 of 10 left on 10-Class Pack.", url: null, read: true, createdAt: inHours(-30) },
 ];
 
 const HOME = {
@@ -97,6 +102,9 @@ export interface MockOptions {
   pt?: unknown[];
   // Brand color override (e.g. a very dark brand).
   primaryColor?: string;
+  // The bell: notifications (none by default); `onReadAll` sees mark-read calls.
+  notifications?: unknown[];
+  onReadAll?: (body: Record<string, unknown>) => void;
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -151,6 +159,15 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
       return json(route, { pointsSpent: 0, egpCredited: 0, points: 0, wallet: 0 });
     }
     if (path.endsWith("/client/pt")) return json(route, { bundles: opts.pt ?? [] });
+    if (path.endsWith("/client/notifications/read")) {
+      opts.onReadAll?.(body());
+      return json(route, { ok: true });
+    }
+    if (path.endsWith("/client/notifications")) {
+      const list = (opts.notifications ?? []) as { read: boolean }[];
+      return json(route, { notifications: list, unread: list.filter((n) => !n.read).length });
+    }
+    if (path.endsWith("/push/vapid-public-key")) return json(route, { publicKey: "BExample" });
     if (path.endsWith("/client/points")) return json(route, typeof opts.points === "function" ? opts.points() : (opts.points ?? POINTS));
     if (path.endsWith("/client/classes")) return json(route, { activePlan: (opts.home?.groupPlan as unknown) ?? null, classes: opts.classes ?? CLASSES });
     if (path.includes("/book")) {

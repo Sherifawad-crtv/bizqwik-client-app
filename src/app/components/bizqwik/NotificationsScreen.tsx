@@ -1,446 +1,167 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  Bell,
-  X,
-  Calendar,
-  Award,
-  AlertCircle,
-  Gift,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  Sparkles,
-  Flame,
-  CreditCard,
-  Zap,
-} from "lucide-react";
-import { Badge } from "../ui/badge";
-import { Separator } from "../ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { toast } from "sonner";
+import { EmptyState } from "./EmptyState";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, BellRing, CalendarCheck, CalendarX, CheckCircle2, Ticket, BadgeCheck, Dumbbell, Wallet, AlarmClock, Bell, BellOff } from "lucide-react";
+import { api, type AppNotification } from "../../../lib/api";
+import { useFeedback } from "../../../lib/feedback";
+import { enablePush, isIOS, pushState, type PushState } from "../../../lib/push";
 
-type NotificationType = "session" | "reward" | "renewal" | "offer" | "achievement";
-type NotificationPriority = "high" | "medium" | "low";
-
-interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  timestamp: string;
-  timeAgo: string;
-  read: boolean;
-  priority: NotificationPriority;
-  actionLabel?: string;
-  actionData?: any;
-}
-
-const notificationsData: Notification[] = [
-  {
-    id: "1",
-    type: "session",
-    title: "Session Starting Soon",
-    message: "Your HIIT Cardio Blast session starts in 2 hours at Downtown Studio",
-    timestamp: "2025-10-31T14:00:00",
-    timeAgo: "2 hours",
-    read: false,
-    priority: "high",
-    actionLabel: "View Session",
-  },
-  {
-    id: "2",
-    type: "offer",
-    title: "Morning Motivation 🌅",
-    message: "Get 20% off all morning sessions this week! Book before slots fill up.",
-    timestamp: "2025-10-31T09:00:00",
-    timeAgo: "5 hours ago",
-    read: false,
-    priority: "high",
-    actionLabel: "Browse Classes",
-  },
-  {
-    id: "3",
-    type: "reward",
-    title: "Points Milestone Unlocked!",
-    message: "You've earned 500 bonus points for completing 5 sessions this month 🎉",
-    timestamp: "2025-10-31T08:30:00",
-    timeAgo: "6 hours ago",
-    read: false,
-    priority: "medium",
-    actionLabel: "View Rewards",
-  },
-  {
-    id: "4",
-    type: "achievement",
-    title: "New Achievement: On Fire 🔥",
-    message: "You've achieved a 5-day workout streak! Keep it going!",
-    timestamp: "2025-10-30T18:00:00",
-    timeAgo: "Yesterday",
-    read: true,
-    priority: "medium",
-    actionLabel: "View Badges",
-  },
-  {
-    id: "5",
-    type: "renewal",
-    title: "Membership Renewal Due",
-    message: "Your Gold membership renews in 7 days. Review your plan or update payment.",
-    timestamp: "2025-10-30T10:00:00",
-    timeAgo: "Yesterday",
-    read: false,
-    priority: "high",
-    actionLabel: "Manage Plan",
-  },
-  {
-    id: "6",
-    type: "session",
-    title: "Session Completed ✓",
-    message: "Great work on Power Yoga Flow! You earned 150 points.",
-    timestamp: "2025-10-29T19:00:00",
-    timeAgo: "2 days ago",
-    read: true,
-    priority: "low",
-  },
-  {
-    id: "7",
-    type: "offer",
-    title: "Weekend Flash Sale",
-    message: "Premium classes at regular prices this Saturday & Sunday only!",
-    timestamp: "2025-10-29T12:00:00",
-    timeAgo: "2 days ago",
-    read: true,
-    priority: "medium",
-    actionLabel: "View Classes",
-  },
-  {
-    id: "8",
-    type: "reward",
-    title: "Reward Redeemed",
-    message: "Your 20% discount has been applied to your wallet.",
-    timestamp: "2025-10-28T15:00:00",
-    timeAgo: "3 days ago",
-    read: true,
-    priority: "low",
-  },
-  {
-    id: "9",
-    type: "session",
-    title: "Booking Confirmed",
-    message: "You're all set for HIIT Cardio Blast on Nov 2 at 4:00 PM",
-    timestamp: "2025-10-28T10:00:00",
-    timeAgo: "3 days ago",
-    read: true,
-    priority: "low",
-  },
-];
-
-const getNotificationIcon = (type: NotificationType) => {
-  switch (type) {
-    case "session":
-      return Calendar;
-    case "reward":
-      return Award;
-    case "renewal":
-      return CreditCard;
-    case "offer":
-      return Gift;
-    case "achievement":
-      return Sparkles;
-    default:
-      return Bell;
-  }
+const ICONS: Record<string, typeof Bell> = {
+  booked: CalendarCheck,
+  booking_cancelled: CalendarX,
+  class_cancelled: CalendarX,
+  class_soon: AlarmClock,
+  checked_in: CheckCircle2,
+  bundle_low: Ticket,
+  bundle_finished: Ticket,
+  plan_started: BadgeCheck,
+  plan_ending: BadgeCheck,
+  plan_ended: BadgeCheck,
+  pt_logged: Dumbbell,
+  wallet_refund: Wallet,
+  wallet_credit: Wallet,
+  points_redeemed: Wallet,
 };
 
-const getNotificationColor = (type: NotificationType) => {
-  switch (type) {
-    case "session":
-      return "bg-blue-500/10 text-blue-600";
-    case "reward":
-      return "bg-[var(--bq-accent)]/10 text-[var(--bq-accent)]";
-    case "renewal":
-      return "bg-red-500/10 text-red-600";
-    case "offer":
-      return "bg-[var(--bq-primary)]/10 text-[var(--bq-primary)]";
-    case "achievement":
-      return "bg-purple-500/10 text-purple-600";
-    default:
-      return "bg-gray-500/10 text-gray-600";
-  }
-};
-
-interface NotificationsScreenProps {
-  onClose: () => void;
-  onNotificationAction?: (notification: Notification) => void;
+function ago(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 7) return days === 1 ? "Yesterday" : `${days} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function NotificationsScreen({ onClose, onNotificationAction }: NotificationsScreenProps) {
-  const [notifications, setNotifications] = useState<Notification[]>(notificationsData);
-  const [filter, setFilter] = useState<"all" | NotificationType>("all");
+// The bell: everything the gym has told this member (bookings, check-ins,
+// sessions left, refunds, reminders), newest first. Opening it marks them
+// read; what was new stays highlighted until you leave.
+export function NotificationsScreen({ onBack, onRead }: { onBack: () => void; onRead: () => void }) {
+  const feedback = useFeedback();
+  const [items, setItems] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [push, setPush] = useState<PushState | null>(null);
+  const [enabling, setEnabling] = useState(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const load = useCallback(() => {
+    api
+      .notifications()
+      .then((d) => {
+        setItems(d.notifications);
+        setError(null);
+        if (d.unread > 0) api.markNotificationsRead().then(onRead).catch(() => {});
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load your notifications."))
+      .finally(() => setLoading(false));
+  }, [onRead]);
+  useEffect(() => {
+    load();
+    pushState().then(setPush);
+  }, [load]);
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success("All notifications marked as read");
-  };
-
-  const handleDelete = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    toast.success("Notification removed");
-  };
-
-  const handleAction = (notification: Notification) => {
-    handleMarkAsRead(notification.id);
-    if (onNotificationAction) {
-      onNotificationAction(notification);
+  const turnOn = async () => {
+    setEnabling(true);
+    try {
+      await enablePush();
+      setPush("on");
+      feedback.success("Notifications are on", "We'll let you know about your classes, sessions and plan.");
+    } catch (e) {
+      feedback.error("Couldn't turn on notifications", e instanceof Error ? e.message : "Please try again.");
+      setPush(await pushState());
+    } finally {
+      setEnabling(false);
     }
-    onClose();
   };
 
-  const filteredNotifications =
-    filter === "all"
-      ? notifications
-      : notifications.filter((n) => n.type === filter);
-
-  // Group notifications by time
-  const today = filteredNotifications.filter((n) => n.timeAgo.includes("hour"));
-  const yesterday = filteredNotifications.filter((n) => n.timeAgo.includes("Yesterday"));
-  const earlier = filteredNotifications.filter(
-    (n) => !n.timeAgo.includes("hour") && !n.timeAgo.includes("Yesterday")
-  );
-
-  const NotificationCard = ({ notification }: { notification: Notification }) => {
-    const Icon = getNotificationIcon(notification.type);
-    const colorClass = getNotificationColor(notification.type);
-
-    return (
-      <motion.div
-        layout
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 20 }}
-        className={`bg-white rounded-2xl p-4 border transition-all duration-[var(--transition-base)] ${
-          notification.read
-            ? "border-[var(--bq-neutral-dark)]"
-            : "border-[var(--bq-primary)]/30 bg-[var(--bq-primary)]/5"
-        }`}
-      >
-        <div className="flex gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <h4
-                className={`${
-                  notification.read ? "text-[var(--bq-text-primary)]" : "text-[var(--bq-text-primary)]"
-                }`}
-              >
-                {notification.title}
-              </h4>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {!notification.read && (
-                  <div className="w-2 h-2 rounded-full bg-[var(--bq-primary)]" />
-                )}
-                <button
-                  onClick={() => handleDelete(notification.id)}
-                  className="w-6 h-6 rounded-lg hover:bg-[var(--bq-neutral-dark)] flex items-center justify-center transition-colors duration-[var(--transition-base)]"
-                >
-                  <X className="w-3.5 h-3.5 text-[var(--bq-text-tertiary)]" />
-                </button>
-              </div>
-            </div>
-
-            <p className="text-sm text-[var(--bq-text-secondary)] mb-2">
-              {notification.message}
-            </p>
-
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--bq-text-tertiary)]">
-                {notification.timeAgo}
-              </span>
-
-              <div className="flex items-center gap-2">
-                {!notification.read && (
-                  <button
-                    onClick={() => handleMarkAsRead(notification.id)}
-                    className="text-xs text-[var(--bq-primary)] hover:underline"
-                  >
-                    Mark as read
-                  </button>
-                )}
-                {notification.actionLabel && (
-                  <button
-                    onClick={() => handleAction(notification)}
-                    className="text-xs text-[var(--bq-primary)] hover:underline flex items-center gap-1"
-                  >
-                    <span>{notification.actionLabel}</span>
-                    <Zap className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
+  const fresh = items.filter((n) => !n.read);
+  const earlier = items.filter((n) => n.read);
 
   return (
-    <div className="min-h-screen bg-[var(--bq-neutral)] pb-24">
-      {/* Header */}
-      <div className="bg-white px-6 pt-12 pb-6 sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="font-display text-2xl text-[var(--bq-text-primary)] mb-1">
-              Notifications
-            </h1>
-            <p className="text-sm text-[var(--bq-text-secondary)]">
-              {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-[var(--bq-secondary)] flex items-center justify-center hover:bg-[var(--bq-neutral-dark)] transition-colors duration-[var(--transition-base)]"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAllAsRead}
-            className="text-sm text-[var(--bq-primary)] hover:underline flex items-center gap-1"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Mark all as read</span>
-          </button>
-        )}
+    <div className="min-h-full bg-white pb-28">
+      <div className="px-6 pt-14 pb-4 flex items-center gap-3">
+        <button onClick={onBack} aria-label="Back" className="w-10 h-10 rounded-xl bg-[var(--bq-neutral)] flex items-center justify-center">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="font-display text-[24px] text-[var(--bq-text-primary)]">Notifications</h1>
       </div>
 
-      <div className="px-6 py-6">
-        {/* Filter Tabs */}
-        <div className="mb-6">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-xl transition-all duration-[var(--transition-base)] whitespace-nowrap ${
-                filter === "all"
-                  ? "bg-[var(--bq-primary)] text-white"
-                  : "bg-white border border-[var(--bq-neutral-dark)] text-[var(--bq-text-secondary)]"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter("session")}
-              className={`px-4 py-2 rounded-xl transition-all duration-[var(--transition-base)] whitespace-nowrap flex items-center gap-2 ${
-                filter === "session"
-                  ? "bg-[var(--bq-primary)] text-white"
-                  : "bg-white border border-[var(--bq-neutral-dark)] text-[var(--bq-text-secondary)]"
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Sessions</span>
-            </button>
-            <button
-              onClick={() => setFilter("reward")}
-              className={`px-4 py-2 rounded-xl transition-all duration-[var(--transition-base)] whitespace-nowrap flex items-center gap-2 ${
-                filter === "reward"
-                  ? "bg-[var(--bq-primary)] text-white"
-                  : "bg-white border border-[var(--bq-neutral-dark)] text-[var(--bq-text-secondary)]"
-              }`}
-            >
-              <Award className="w-4 h-4" />
-              <span>Rewards</span>
-            </button>
-            <button
-              onClick={() => setFilter("offer")}
-              className={`px-4 py-2 rounded-xl transition-all duration-[var(--transition-base)} whitespace-nowrap flex items-center gap-2 ${
-                filter === "offer"
-                  ? "bg-[var(--bq-primary)] text-white"
-                  : "bg-white border border-[var(--bq-neutral-dark)] text-[var(--bq-text-secondary)]"
-              }`}
-            >
-              <Gift className="w-4 h-4" />
-              <span>Offers</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Notifications List */}
-        <AnimatePresence mode="popLayout">
-          {filteredNotifications.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-12"
-            >
-              <div className="w-20 h-20 rounded-full bg-[var(--bq-secondary)] flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-10 h-10 text-[var(--bq-text-tertiary)]" />
+      {push && push !== "on" && push !== "unsupported" && (
+        <div className="mx-6 mb-5 rounded-[1.5rem] p-5 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)]" data-testid="push-card">
+          <div className="flex items-start gap-3">
+            <span className="w-10 h-10 flex-none rounded-full bg-white/20 flex items-center justify-center">
+              {push === "blocked" ? <BellOff className="w-5 h-5" /> : <BellRing className="w-5 h-5" />}
+            </span>
+            <div className="min-w-0">
+              <div className="font-display text-[17px]">{push === "blocked" ? "Notifications are blocked" : "Get notified on your phone"}</div>
+              <div className="text-[13px] opacity-85 mt-0.5">
+                {push === "install"
+                  ? `On iPhone, tap Share, then "Add to Home Screen", and open the app from there to turn notifications on.`
+                  : push === "blocked"
+                    ? "Allow notifications for this app in your phone's settings to get class reminders."
+                    : "Class reminders, sessions left, refunds and plan renewals — as they happen."}
               </div>
-              <h3 className="font-display text-xl text-[var(--bq-text-primary)] mb-2">
-                No notifications
-              </h3>
-              <p className="text-sm text-[var(--bq-text-secondary)]">
-                You're all caught up!
-              </p>
-            </motion.div>
-          ) : (
-            <div className="space-y-6">
-              {/* Today */}
-              {today.length > 0 && (
-                <div>
-                  <h3 className="text-sm text-[var(--bq-text-tertiary)] mb-3 px-2">
-                    Today
-                  </h3>
-                  <div className="space-y-3">
-                    {today.map((notification) => (
-                      <NotificationCard key={notification.id} notification={notification} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Yesterday */}
-              {yesterday.length > 0 && (
-                <div>
-                  <h3 className="text-sm text-[var(--bq-text-tertiary)] mb-3 px-2">
-                    Yesterday
-                  </h3>
-                  <div className="space-y-3">
-                    {yesterday.map((notification) => (
-                      <NotificationCard key={notification.id} notification={notification} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Earlier */}
-              {earlier.length > 0 && (
-                <div>
-                  <h3 className="text-sm text-[var(--bq-text-tertiary)] mb-3 px-2">
-                    Earlier
-                  </h3>
-                  <div className="space-y-3">
-                    {earlier.map((notification) => (
-                      <NotificationCard key={notification.id} notification={notification} />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+          </div>
+          {push === "off" && (
+            <button onClick={turnOn} disabled={enabling} className="mt-4 w-full h-11 rounded-[1rem] bg-white text-[var(--bq-primary-readable)] font-semibold disabled:opacity-60 active:scale-[0.98] transition-transform">
+              {enabling ? "Turning on…" : "Turn on notifications"}
+            </button>
           )}
-        </AnimatePresence>
+          {push === "install" && isIOS() && <div className="mt-3 text-[12px] opacity-75">Works on iOS 16.4 and later.</div>}
+        </div>
+      )}
+
+      {loading && (
+        <div className="py-10 flex justify-center">
+          <div className="w-8 h-8 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />
+        </div>
+      )}
+      {error && (
+        <div className="mx-6 text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>
+          {error}
+        </div>
+      )}
+      {!loading && !error && items.length === 0 && (
+        <EmptyState icon={<Bell />} title="No notifications yet" body="Bookings, check-ins, sessions left and reminders will show up here." />
+      )}
+
+      <div className="px-6">
+        {fresh.length > 0 && <Section title="New" items={fresh} />}
+        {earlier.length > 0 && <Section title={fresh.length ? "Earlier" : ""} items={earlier} />}
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, items }: { title: string; items: AppNotification[] }) {
+  return (
+    <div className="mb-5">
+      {title && <div className="text-[var(--bq-text-tertiary)] text-xs uppercase tracking-wide mb-2">{title}</div>}
+      <div className="flex flex-col gap-2">
+        {items.map((n) => {
+          const Glyph = ICONS[n.type] ?? Bell;
+          return (
+            <div
+              key={n.id}
+              data-testid="notification"
+              data-unread={!n.read}
+              className={`flex gap-3 rounded-[1.25rem] p-4 ${n.read ? "bg-white border border-[var(--bq-neutral-dark)]" : "bg-[var(--bq-primary)]/[0.07]"}`}
+            >
+              <span className={`w-10 h-10 flex-none rounded-full flex items-center justify-center ${n.read ? "bg-[var(--bq-neutral)] text-[var(--bq-text-secondary)]" : "bg-[var(--bq-primary)] text-[var(--bq-on-primary)]"}`}>
+                <Glyph className="w-5 h-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-[var(--bq-text-primary)] font-semibold text-[15px] leading-snug">{n.title}</div>
+                  {!n.read && <span className="mt-1.5 w-2 h-2 flex-none rounded-full bg-[var(--bq-primary)]" aria-label="New" />}
+                </div>
+                <div className="text-[var(--bq-text-secondary)] text-sm mt-0.5">{n.body}</div>
+                <div className="text-[var(--bq-text-tertiary)] text-xs mt-1.5">{ago(n.createdAt)}</div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

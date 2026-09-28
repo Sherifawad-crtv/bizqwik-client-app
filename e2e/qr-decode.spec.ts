@@ -89,3 +89,14 @@ test("check-in with no sessions left opens the no-sessions popup", async ({ page
   await sheet.getByRole("button", { name: "Got it" }).click();
   await expect(sheet).toHaveCount(0);
 });
+
+// Anything else that goes wrong is a branded modal that waits to be dismissed.
+test("a refused check-in explains itself in a modal that stays until dismissed", async ({ page }) => {
+  await signInAndScan(page, { status: 400, body: { error: "That QR isn't your gym's check-in code." } });
+  const modal = page.getByRole("dialog", { name: "Couldn't check you in" });
+  await expect(modal).toContainText("That QR isn't your gym's check-in code.", { timeout: 10_000 });
+  await page.waitForTimeout(3000); // longer than a success stays up
+  await expect(modal).toBeVisible();
+  await modal.getByRole("button", { name: "OK" }).click();
+  await expect(modal).toHaveCount(0);
+});

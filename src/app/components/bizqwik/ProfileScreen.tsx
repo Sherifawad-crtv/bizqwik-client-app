@@ -1,4 +1,4 @@
-import { ChevronRight, Award, Wallet, Gift, LogOut } from "lucide-react";
+import { ChevronRight, Award, Wallet, Gift, LogOut, Bell } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { useAuth } from "../../../lib/auth";
 import { useBranding } from "../../../lib/branding";
@@ -44,6 +44,7 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
         <MenuItem icon={<Award className="w-5 h-5" />} label="My plan" onClick={onMembershipClick} />
         <MenuItem icon={<Wallet className="w-5 h-5" />} label="Wallet" onClick={onWalletClick} />
         <MenuItem icon={<Gift className="w-5 h-5" />} label="Points" onClick={onRewardsClick} />
+        <MenuItem icon={<Bell className="w-5 h-5" />} label="Notifications" onClick={onNotificationsClick} badge={notificationCount} />
       </div>
 
       <div className="px-6 mt-8">
@@ -55,11 +56,12 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
   );
 }
 
-function MenuItem({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+function MenuItem({ icon, label, onClick, badge = 0 }: { icon: React.ReactNode; label: string; onClick?: () => void; badge?: number }) {
   return (
     <button onClick={onClick} className="w-full flex items-center gap-3 p-4 rounded-[1.25rem] bg-[var(--bq-neutral)] active:scale-[0.98] transition-transform">
       <span className="w-10 h-10 rounded-xl bg-white text-[var(--bq-primary-readable)] flex items-center justify-center">{icon}</span>
       <span className="flex-1 text-left text-[var(--bq-text-primary)]">{label}</span>
+      {badge > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] text-xs flex items-center justify-center">{badge > 9 ? "9+" : badge}</span>}
       <ChevronRight className="w-5 h-5 text-[var(--bq-text-tertiary)]" />
     </button>
   );

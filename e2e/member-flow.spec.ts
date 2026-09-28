@@ -18,23 +18,29 @@ test("member: intro -> sign in -> home -> book -> bookings -> wallet", async ({ 
   await page.locator('input[type="password"]').fill("ZZpass123!");
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  // Home renders with the member's first name + live wallet/points tiles.
+  // Home: the plan hero (here a PT package), wallet + points chips, quick actions.
   await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
   await expect(page.getByText("6,800 EGP")).toBeVisible();
   await expect(page.getByText("PT package")).toBeVisible();
   await expect(page.getByText(/5 of 6 sessions left/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Classes" })).toBeVisible();
-  await expect(page.getByText("Morning HIIT")).toBeVisible();
+  await expect(page.getByTestId("membership-hero")).toBeVisible();
+  await expect(page.getByRole("button", { name: "My PT code" })).toBeVisible();
 
-  // Open the booking sheet and pay from wallet.
-  await page.getByRole("button", { name: "Book", exact: true }).click();
+  // Quick action → Schedule; the whole class card opens booking.
+  await page.getByRole("button", { name: "Book a class" }).click();
+  await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
+  const card = page.getByRole("button", { name: /Morning HIIT/ });
+  await expect(card.getByTestId("going")).toHaveText(/AK.*MS.*LH.*\+4/);
+  await card.click();
   await expect(page.getByText("Pay from wallet")).toBeVisible();
   await page.getByRole("button", { name: /Pay from wallet/ }).click();
-  await expect(page.getByText(/paid from wallet/i)).toBeVisible(); // sonner toast
-  await expect(page.getByText(/paid from wallet/i)).toBeHidden({ timeout: 8000 }); // let it auto-dismiss so it can't intercept nav taps
+  const done = page.getByTestId("feedback");
+  await expect(done).toContainText("You're booked!");
+  await expect(done).toContainText(/paid from your wallet/i);
+  await expect(done).toBeHidden({ timeout: 8000 }); // a success closes itself
 
   // Bottom nav -> Bookings.
-  await page.getByRole("button", { name: "Bookings" }).click();
+  await page.getByRole("button", { name: "Bookings", exact: true }).click();
   await expect(page.getByRole("heading", { name: "My bookings" })).toBeVisible();
   await expect(page.getByText("Morning HIIT")).toBeVisible();
 

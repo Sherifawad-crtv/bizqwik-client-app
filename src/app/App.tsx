@@ -1,25 +1,26 @@
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useState } from "react";
 import { IntroScreen } from "./components/bizqwik/IntroScreen";
 import { AuthScreen } from "./components/bizqwik/AuthScreen";
 import { NewPasswordScreen } from "./components/bizqwik/NewPasswordScreen";
 import { HomeScreen } from "./components/bizqwik/HomeScreen";
+import { ScheduleScreen } from "./components/bizqwik/ScheduleScreen";
 import { MyBookings } from "./components/bizqwik/MyBookings";
 import { WalletScreen } from "./components/bizqwik/WalletScreen";
 import { MembershipScreen } from "./components/bizqwik/MembershipScreen";
 import { RewardsScreen } from "./components/bizqwik/RewardsScreen";
 import { ProfileScreen } from "./components/bizqwik/ProfileScreen";
-import { BottomNav } from "./components/bizqwik/BottomNav";
+import { NotificationsScreen } from "./components/bizqwik/NotificationsScreen";
+import { BottomNav, type NavItem } from "./components/bizqwik/BottomNav";
 import { Fab } from "./components/bizqwik/Fab";
 import { QRScannerScreen } from "./components/bizqwik/QRScannerScreen";
-import { Toaster } from "./components/ui/sonner";
 import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
+import { useFeedback } from "../lib/feedback";
+import { syncPushOnSignIn } from "../lib/push";
 import { api, errorCode, type ApiError } from "../lib/api";
-import { NoSessionsSheet } from "./components/bizqwik/NoSessionsSheet";
 
-type Step = "home" | "bookings" | "wallet" | "membership" | "rewards" | "profile";
-type NavItem = "home" | "bookings" | "profile";
+type Step = NavItem | "wallet" | "membership" | "rewards" | "notifications";
+const NAV: NavItem[] = ["home", "schedule", "bookings", "profile"];
 
 // `100svh` (small viewport height), not `100vh`/`min-h-screen` — on iOS
 // Safari, `100vh` is measured against the viewport with the address bar
@@ -32,8 +33,7 @@ type NavItem = "home" | "bookings" | "profile";
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-[100svh] overflow-hidden bg-white">
-      <div className="mx-auto max-w-[430px] h-full overflow-y-auto overscroll-contain bg-white shadow-lg">{children}</div>
-      <Toaster />
+      <div data-scroll-root className="mx-auto max-w-[430px] h-full overflow-y-auto overscroll-contain bg-white shadow-lg">{children}</div>
     </div>
   );
 }
@@ -48,9 +48,23 @@ function Splash() {
   );
 }
 
+// A tap on a push opens the app at ?open=notifications.
+function openedFromPush(): boolean {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("open") !== "notifications") return false;
+    url.searchParams.delete("open");
+    window.history.replaceState(null, "", url.toString());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function App() {
   const branding = useBranding();
   const auth = useAuth();
+  const feedback = useFeedback();
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [introDone, setIntroDone] = useState(false);
@@ -59,11 +73,26 @@ function App() {
   // Global check-in scanner — reachable from the FAB on every tab, not just
   // from inside Bookings, so a member never has to navigate to check in.
   const [scanning, setScanning] = useState(false);
-  const [noSessions, setNoSessions] = useState<{ message: string; planName: string | null } | null>(null);
+  const [unread, setUnread] = useState(0);
+
+  const refreshUnread = useCallback(() => {
+    api.notifications().then((r) => setUnread(r.unread)).catch(() => {});
+  }, []);
 
   useEffect(() => {
-    if (auth.client) setStep("home");
-  }, [auth.client]);
+    if (!auth.client) return;
+    setStep(openedFromPush() ? "notifications" : "home");
+    refreshUnread();
+    syncPushOnSignIn();
+    const onVisible = () => document.visibilityState === "visible" && refreshUnread();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [auth.client, refreshUnread]);
+
+  // Every screen change starts at the top.
+  useEffect(() => {
+    document.querySelector("[data-scroll-root]")?.scrollTo(0, 0);
+  }, [step]);
 
   if (branding.loading || !auth.ready) return <Splash />;
 
@@ -102,7 +131,13 @@ function App() {
     );
   }
 
-  const backToProfile = () => { setPreviousStep(null); setStep("profile"); };
+  const go = (next: Step) => {
+    setPreviousStep(step);
+    setStep(next);
+  };
+  const back = () => setStep(previousStep && previousStep !== step ? previousStep : "home");
+  const openNotifications = () => go("notifications");
+  const bell = { onNotificationsClick: openNotifications, notificationCount: unread };
 
   const onScan = async (code: string) => {
     setScanning(false);
@@ -110,52 +145,63 @@ function App() {
       const res = await api.checkIn(code.trim());
       const p = res.plan;
       if (res.deducted && p) {
-        toast.success(`Checked in — 1 session used · ${p.creditsRemaining} of ${p.creditsTotal} left on ${p.name} 💪`);
+        feedback.success("Checked in 💪", `1 session used · ${p.creditsRemaining} of ${p.creditsTotal} left on ${p.name}`);
       } else {
-        toast.success("Checked in — enjoy your session! 💪");
+        feedback.success("Checked in 💪", "Checked in — enjoy your session!");
       }
+      refreshUnread();
     } catch (e) {
       if (errorCode(e) === "no_sessions") {
         const plan = (e as ApiError).data?.plan as { name?: string } | null | undefined;
-        setNoSessions({ message: e instanceof Error ? e.message : "No sessions left.", planName: plan?.name ?? null });
+        feedback.error(
+          "No sessions left",
+          <>
+            {plan?.name && <span className="block text-sm text-[var(--bq-text-tertiary)] mb-1">{plan.name} · 0 sessions remaining</span>}
+            {e instanceof Error ? e.message : "No sessions left."}
+          </>,
+          { action: { label: "See plans", onClick: () => go("membership") }, dismissLabel: "Got it" },
+        );
       } else {
-        toast.error(e instanceof Error ? e.message : "Check-in failed.");
+        feedback.error("Couldn't check you in", e instanceof Error ? e.message : "Check-in failed.");
       }
     }
   };
+
+  const tab: NavItem = (NAV as string[]).includes(step) ? (step as NavItem) : step === "notifications" && previousStep && (NAV as string[]).includes(previousStep) ? (previousStep as NavItem) : "profile";
 
   return (
     <Shell>
       {step === "home" && (
         <HomeScreen
           userName={auth.client.name.split(" ")[0]}
-          onWalletClick={() => setStep("wallet")}
-          onPointsClick={() => setStep("rewards")}
-          onPlanClick={() => setStep("membership")}
-          onNotificationsClick={() => {}}
-          notificationCount={0}
+          onWalletClick={() => go("wallet")}
+          onPointsClick={() => go("rewards")}
+          onPlanClick={() => go("membership")}
+          onScheduleClick={() => go("schedule")}
+          onBookingsClick={() => go("bookings")}
+          {...bell}
         />
       )}
 
-      {step === "bookings" && <MyBookings onBrowse={() => setStep("home")} />}
+      {step === "schedule" && <ScheduleScreen {...bell} />}
 
-      {step === "wallet" && (
-        <WalletScreen onNotificationsClick={() => {}} notificationCount={0} onBack={previousStep === "profile" ? backToProfile : undefined} />
-      )}
+      {step === "bookings" && <MyBookings onBrowse={() => go("schedule")} />}
 
-      {step === "membership" && <MembershipScreen onNotificationsClick={() => {}} notificationCount={0} />}
+      {step === "wallet" && <WalletScreen {...bell} onBack={previousStep === "profile" || previousStep === "home" ? back : undefined} />}
 
-      {step === "rewards" && (
-        <RewardsScreen onNotificationsClick={() => {}} notificationCount={0} onBack={previousStep === "profile" ? backToProfile : undefined} />
-      )}
+      {step === "membership" && <MembershipScreen {...bell} />}
+
+      {step === "rewards" && <RewardsScreen {...bell} onBack={previousStep === "profile" || previousStep === "home" ? back : undefined} />}
+
+      {step === "notifications" && <NotificationsScreen onBack={back} onRead={() => setUnread(0)} />}
 
       {step === "profile" && (
         <ProfileScreen
-          notificationCount={0}
+          {...bell}
           onLogout={auth.signOut}
-          onMembershipClick={() => setStep("membership")}
-          onWalletClick={() => { setPreviousStep("profile"); setStep("wallet"); }}
-          onRewardsClick={() => { setPreviousStep("profile"); setStep("rewards"); }}
+          onMembershipClick={() => go("membership")}
+          onWalletClick={() => go("wallet")}
+          onRewardsClick={() => go("rewards")}
         />
       )}
 
@@ -163,22 +209,11 @@ function App() {
         className="fixed left-0 right-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4"
         style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
       >
-        <BottomNav
-          active={(["home", "bookings", "profile"].includes(step) ? step : "profile") as NavItem}
-          onNavigate={(item: NavItem) => setStep(item)}
-        />
+        <BottomNav active={tab} onNavigate={(item: NavItem) => go(item)} />
         <Fab onClick={() => setScanning(true)} />
       </div>
 
       {scanning && <QRScannerScreen onClose={() => setScanning(false)} onScanSuccess={onScan} />}
-      {noSessions && (
-        <NoSessionsSheet
-          message={noSessions.message}
-          planName={noSessions.planName}
-          onClose={() => setNoSessions(null)}
-          onSeePlans={() => { setNoSessions(null); setStep("membership"); }}
-        />
-      )}
     </Shell>
   );
 }

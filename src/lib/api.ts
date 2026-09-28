@@ -89,11 +89,15 @@ export interface HomeData {
   points: number;
   pointsValueEgp: number;
   upcomingClasses: GymClass[];
+  unreadNotifications?: number;
 }
 // `coverage`: "plan" when the member's active plan pays for this session,
 // else "drop_in" at `price`.
-export interface GymClass { id: string; seriesId?: string | null; title: string; description: string | null; startsAt: string; price: number; status: string; booked?: boolean; coverage?: "plan" | "drop_in" }
-export interface Booking { id: string; classId: string; payMethod: "wallet" | "desk" | "plan"; payStatus: string; attendance: string; price: number; bookedAt: string; classTitle: string | null; classStartsAt: string | null; coverage?: "plan" | "drop_in" }
+// `going`: how many are booked in, with up to 4 initials (the member first,
+// as "You") — never names. `imageUrl` is null until the gym adds a photo.
+export interface Going { count: number; initials: string[] }
+export interface GymClass { id: string; seriesId?: string | null; title: string; description: string | null; startsAt: string; price: number; status: string; booked?: boolean; coverage?: "plan" | "drop_in"; imageUrl?: string | null; going?: Going }
+export interface Booking { id: string; classId: string; payMethod: "wallet" | "desk" | "plan"; payStatus: string; attendance: string; price: number; bookedAt: string; classTitle: string | null; classStartsAt: string | null; classImageUrl?: string | null; coverage?: "plan" | "drop_in" }
 export interface WalletTx { id: string; type: string; amount: number; category: string; description: string | null; createdAt: string }
 /** One line of the member's full money history with the gym: purchases (any
  * tender), wallet credits, expiries and desk refunds. `walletDelta` is the
@@ -137,6 +141,9 @@ export interface PtBundle {
   loggedToday: boolean;
 }
 
+/** One entry in the member's notifications (the bell). */
+export interface AppNotification { id: string; type: string; title: string; body: string; url: string | null; read: boolean; createdAt: string }
+
 export const api = {
   // public (pre-auth)
   branding: (slug: string) => callFn<Branding>(`client/branding?slug=${encodeURIComponent(slug)}`),
@@ -171,4 +178,12 @@ export const api = {
   // `points` to redeem everything redeemable.
   redeemPoints: (points?: number) =>
     callFn<{ pointsSpent: number; egpCredited: number; points: number; wallet: number }>("client/points/redeem", { method: "POST", body: points ? { points } : {} }),
+
+  notifications: () => callFn<{ notifications: AppNotification[]; unread: number }>("client/notifications"),
+  // Omit `ids` to mark everything read.
+  markNotificationsRead: (ids?: string[]) => callFn<{ ok: true }>("client/notifications/read", { method: "POST", body: ids ? { ids } : {} }),
+  pushVapidPublicKey: () => callFn<{ publicKey: string }>("push/vapid-public-key"),
+  pushSubscribe: (sub: PushSubscriptionJSON, deviceId: string) =>
+    callFn<{ ok: true }>("client/push/subscribe", { method: "POST", body: { endpoint: sub.endpoint, keys: sub.keys, deviceId } }),
+  pushUnsubscribe: (endpoint: string, deviceId: string) => callFn<{ ok: true }>("client/push/unsubscribe", { method: "POST", body: { endpoint, deviceId } }),
 };

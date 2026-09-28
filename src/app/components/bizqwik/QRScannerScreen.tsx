@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, AlertCircle, RotateCcw } from "lucide-react";
 import { startQrCamera } from "../../../lib/qrCamera";
-import { toast } from "sonner";
 
 interface QRScannerScreenProps {
   onClose: () => void;

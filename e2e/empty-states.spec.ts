@@ -25,12 +25,15 @@ async function go(page: Page) {
 }
 test("new member: home and bookings explain the empty schedule", async ({ page }) => {
   await go(page);
-  await expect(page.getByText("No classes on this day")).toBeVisible();
+  await expect(page.getByText("No classes today")).toBeVisible();
   await expect(page.getByText("Your gym hasn't scheduled any classes yet.", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "Bookings" }).click();
+  await expect(page.getByText("No active plan")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Get a plan", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Bookings", exact: true }).click();
   await expect(page.getByText("No bookings yet")).toBeVisible();
   await page.getByRole("button", { name: "Browse classes" }).click();
-  await expect(page.getByRole("heading", { name: /Hi, Zara/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
+  await expect(page.getByText("No classes on this day")).toBeVisible();
 });
 
 test("new member: plan, wallet and points explain what fills them", async ({ page }) => {
