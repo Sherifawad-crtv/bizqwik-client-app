@@ -38,6 +38,20 @@ export default defineConfig({
     buildVersion(),
   ],
   define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
+  build: {
+    rollupOptions: {
+      output: {
+        // Libraries that rarely change get their own files, so after a
+        // release a phone only re-downloads the app's own code.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'
+          if (id.includes('@supabase')) return 'supabase'
+          return undefined
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@/styles': path.resolve(__dirname, './src/styles'),

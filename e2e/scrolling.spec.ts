@@ -26,7 +26,7 @@ async function signIn(page: Page, classesDelayMs = 0) {
   await page.clock.install({ time: NINE_AM });
   await mockBackend(page, { classes: CLASSES, home: { groupPlan: BUNDLE_PLAN, package: null } });
   if (classesDelayMs) {
-    await page.route(/\/client\/classes$/, async (route) => {
+    await page.route(/\/client\/home$/, async (route) => {
       await new Promise((r) => setTimeout(r, classesDelayMs));
       await route.fallback();
     });

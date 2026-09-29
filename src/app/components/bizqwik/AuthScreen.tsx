@@ -8,7 +8,7 @@ import { useBranding } from "../../../lib/branding";
 // time, set their password. Email + password only — matches the backend's
 // invite-driven auth (no phone/QR auth in v1).
 export function AuthScreen() {
-  const { signIn, activate, resetPassword } = useAuth();
+  const { signIn, activate, resetPassword, notice } = useAuth();
   const { data } = useBranding();
   const appName = data?.branding.appName ?? "Bizqwik";
   const logo = data?.branding.logoUrl ?? null;
@@ -115,9 +115,9 @@ export function AuthScreen() {
               </button>
             )}
 
-            {error && (
-              <div className="text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>
-                {error}
+            {(error || notice) && (
+              <div role="alert" className="text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>
+                {error ?? notice}
               </div>
             )}
 

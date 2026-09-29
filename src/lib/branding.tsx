@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, type Branding } from "./api";
 import { resolveSlug } from "./config";
+import { cacheGet, cacheSet } from "./cache";
 
 interface BrandingState {
   loading: boolean;
@@ -123,26 +124,34 @@ function ensureReadableOnWhite(rgb: [number, number, number]): string {
 function applyTheme(b: Branding) {
   const root = document.documentElement;
   const rgb = b.branding.primaryColor ? parseHex(b.branding.primaryColor) : null;
+  const vars: Record<string, string> = {};
+  const set = (k: string, v: string) => {
+    vars[k] = v;
+    root.style.setProperty(k, v);
+  };
   if (rgb) {
     const hex = toHex(rgb);
-    root.style.setProperty("--bq-primary", hex);
-    root.style.setProperty("--bq-primary-light", mix(rgb, 255, 0.28));
-    root.style.setProperty("--bq-primary-dark", mix(rgb, 0, 0.22));
-    root.style.setProperty("--glow-primary", `0 8px 24px rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.15)`);
+    set("--bq-primary", hex);
+    set("--bq-primary-light", mix(rgb, 255, 0.28));
+    set("--bq-primary-dark", mix(rgb, 0, 0.22));
+    set("--glow-primary", `0 8px 24px rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.15)`);
     // Every org picks its own brand color, which can be anywhere from near-
     // black to near-white — these two guarantee it never makes text
     // unreadable: one for text/icons ON a primary-filled background (CTAs,
     // badges), one for the brand color used AS text/icon color on a
     // white/light background (nav labels, links). See ensureReadableOnWhite
     // and pickOnColor above for the actual WCAG math.
-    root.style.setProperty("--bq-on-primary", pickOnColor(rgb));
-    root.style.setProperty("--bq-primary-readable", ensureReadableOnWhite(rgb));
+    set("--bq-on-primary", pickOnColor(rgb));
+    set("--bq-primary-readable", ensureReadableOnWhite(rgb));
     // On dark surfaces (the photo onboarding) a dark brand color would vanish:
     // below 3:1 against black the button turns white instead.
     const onDark: [number, number, number] = contrast(relLuminance(rgb), 0) >= 3 ? rgb : WHITE;
-    root.style.setProperty("--bq-primary-on-dark", toHex(onDark));
-    root.style.setProperty("--bq-on-primary-on-dark", pickOnColor(onDark));
+    set("--bq-primary-on-dark", toHex(onDark));
+    set("--bq-on-primary-on-dark", pickOnColor(onDark));
   }
+  // index.html paints these before the app's code has even loaded, so the
+  // first frame is already in the gym's colours.
+  cacheSet("theme", vars);
 
   const name = b.branding.appName || b.org.name;
   document.title = name;
@@ -190,8 +199,19 @@ function setLink(rel: string, href: string) {
   el.href = href;
 }
 
+// The gym seen last time opens instantly; a fresh copy replaces it quietly.
+function cachedBranding(slug: string): Branding | null {
+  const b = cacheGet<Branding>(`branding:${slug}`);
+  if (b) applyTheme(b);
+  return b;
+}
+
 export function BrandingProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<BrandingState>({ loading: true, error: null, slug: resolveSlug(), data: null });
+  const [state, setState] = useState<BrandingState>(() => {
+    const slug = resolveSlug();
+    const data = cachedBranding(slug);
+    return { loading: !data, error: null, slug, data };
+  });
 
   useEffect(() => {
     let alive = true;
@@ -200,11 +220,13 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         if (!alive) return;
         applyTheme(data);
-        setState((s) => ({ ...s, loading: false, data }));
+        cacheSet(`branding:${state.slug}`, data);
+        setState((s) => ({ ...s, loading: false, error: null, data }));
       })
       .catch((err: unknown) => {
         if (!alive) return;
-        setState((s) => ({ ...s, loading: false, error: err instanceof Error ? err.message : "Couldn't load this gym." }));
+        // Offline with a cached copy: keep going with it.
+        setState((s) => (s.data ? s : { ...s, loading: false, error: err instanceof Error ? err.message : "Couldn't load this gym." }));
       });
     return () => {
       alive = false;
