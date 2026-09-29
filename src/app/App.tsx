@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { HomeScreen } from "./components/bizqwik/HomeScreen";
 import { BottomNav, type NavItem } from "./components/bizqwik/BottomNav";
 import { Fab } from "./components/bizqwik/Fab";
@@ -7,7 +7,8 @@ import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../lib/feedback";
 import { syncPushOnSignIn } from "../lib/push";
-import { api, errorCode, type ApiError } from "../lib/api";
+import { api, errorCode, type ApiError, type HomeData } from "../lib/api";
+import { takeHome } from "../lib/homeData";
 
 // Home is in the first download; every other screen is fetched when first
 // needed (and fetched early once Home is up, so tabs still open instantly).
@@ -72,7 +73,7 @@ function Splash() {
   return (
     <Shell>
       <div className="min-h-full flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-[var(--bq-neutral-dark)] border-t-[var(--bq-primary)] animate-spin" />
+        <div className="w-10 h-10 rounded-full border-4 border-[#e5e7eb] border-t-[#1f2937] animate-spin" />
       </div>
     </Shell>
   );
@@ -104,6 +105,26 @@ function App() {
   // from inside Bookings, so a member never has to navigate to check in.
   const [scanning, setScanning] = useState(false);
   const [unread, setUnread] = useState(0);
+  // Home's data. The app shows only a loading screen until it has arrived, so
+  // nothing appears and then changes.
+  const [home, setHome] = useState<HomeData | null>(null);
+  const [homeError, setHomeError] = useState<string | null>(null);
+
+  const applyHome = useCallback((h: HomeData) => {
+    setHome(h);
+    setHomeError(null);
+    setUnread(h.unreadNotifications ?? 0);
+  }, []);
+  const failHome = (e: unknown) => setHomeError(e instanceof Error ? e.message : "Couldn't load your home.");
+  // A quiet refresh (after a booking, or coming back to Home): on failure the
+  // screen keeps what it has.
+  const refreshHome = useCallback(() => {
+    api.home().then(applyHome).catch(() => {});
+  }, [applyHome]);
+  const retryHome = () => {
+    setHomeError(null);
+    api.home().then(applyHome).catch(failHome);
+  };
 
   const refreshUnread = useCallback(() => {
     api.notifications().then((r) => setUnread(r.unread)).catch(() => {});
@@ -114,7 +135,13 @@ function App() {
   // wait until the page has settled.
   const clientId = auth.client?.id;
   useEffect(() => {
+    setHome(null);
+    setHomeError(null);
     if (!clientId) return;
+    let alive = true;
+    takeHome()
+      .then((h) => alive && applyHome(h))
+      .catch((e) => alive && failHome(e));
     const fromPush = openedFromPush();
     setStep(fromPush ? "notifications" : "home");
     if (fromPush) refreshUnread();
@@ -124,8 +151,19 @@ function App() {
     });
     const onVisible = () => document.visibilityState === "visible" && refreshUnread();
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, refreshUnread]);
+
+  // Coming back to Home from another tab shows fresh numbers.
+  const lastStep = useRef<Step>("home");
+  useEffect(() => {
+    if (step === "home" && lastStep.current !== "home" && clientId) refreshHome();
+    lastStep.current = step;
+  }, [step, clientId, refreshHome]);
 
   // Every screen change starts at the top.
   useEffect(() => {
@@ -187,6 +225,24 @@ function App() {
     );
   }
 
+  if (homeError) {
+    return (
+      <Shell>
+        <div className="min-h-full flex items-center justify-center px-8 text-center">
+          <div className="w-full">
+            <div className="font-display text-[22px] text-[var(--bq-text-primary)] mb-2">Couldn't load your home</div>
+            <p className="text-[var(--bq-text-secondary)] text-sm mb-6">{homeError}</p>
+            <Button fullWidth onClick={retryHome}>
+              Try again
+            </Button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+  // Nothing of the app shows until Home's data is here.
+  if (!home) return <Splash />;
+
   const go = (next: Step) => {
     setPreviousStep(step);
     setStep(next);
@@ -229,6 +285,8 @@ function App() {
     <Shell>
       {step === "home" && (
         <HomeScreen
+          data={home}
+          onReload={refreshHome}
           userName={auth.client.name.split(" ")[0]}
           onWalletClick={() => go("wallet")}
           onPointsClick={() => go("rewards")}
@@ -236,7 +294,6 @@ function App() {
           onScheduleClick={() => go("schedule")}
           onBookingsClick={() => go("bookings")}
           onCheckIn={() => setScanning(true)}
-          onUnread={setUnread}
           {...bell}
         />
       )}

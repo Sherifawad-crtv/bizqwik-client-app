@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, type Branding } from "./api";
 import { resolveSlug } from "./config";
-import { cacheGet, cacheSet } from "./cache";
 
 interface BrandingState {
   loading: boolean;
@@ -124,11 +123,7 @@ function ensureReadableOnWhite(rgb: [number, number, number]): string {
 function applyTheme(b: Branding) {
   const root = document.documentElement;
   const rgb = b.branding.primaryColor ? parseHex(b.branding.primaryColor) : null;
-  const vars: Record<string, string> = {};
-  const set = (k: string, v: string) => {
-    vars[k] = v;
-    root.style.setProperty(k, v);
-  };
+  const set = (k: string, v: string) => root.style.setProperty(k, v);
   if (rgb) {
     const hex = toHex(rgb);
     set("--bq-primary", hex);
@@ -149,9 +144,6 @@ function applyTheme(b: Branding) {
     set("--bq-primary-on-dark", toHex(onDark));
     set("--bq-on-primary-on-dark", pickOnColor(onDark));
   }
-  // index.html paints these before the app's code has even loaded, so the
-  // first frame is already in the gym's colours.
-  cacheSet("theme", vars);
 
   const name = b.branding.appName || b.org.name;
   document.title = name;
@@ -199,18 +191,9 @@ function setLink(rel: string, href: string) {
   el.href = href;
 }
 
-// The gym seen last time opens instantly; a fresh copy replaces it quietly.
-function cachedBranding(slug: string): Branding | null {
-  const b = cacheGet<Branding>(`branding:${slug}`);
-  if (b) applyTheme(b);
-  return b;
-}
-
 export function BrandingProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<BrandingState>(() => {
-    const slug = resolveSlug();
-    const data = cachedBranding(slug);
-    return { loading: !data, error: null, slug, data };
+    return { loading: true, error: null, slug: resolveSlug(), data: null };
   });
 
   useEffect(() => {
@@ -220,13 +203,11 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         if (!alive) return;
         applyTheme(data);
-        cacheSet(`branding:${state.slug}`, data);
         setState((s) => ({ ...s, loading: false, error: null, data }));
       })
       .catch((err: unknown) => {
         if (!alive) return;
-        // Offline with a cached copy: keep going with it.
-        setState((s) => (s.data ? s : { ...s, loading: false, error: err instanceof Error ? err.message : "Couldn't load this gym." }));
+        setState((s) => ({ ...s, loading: false, error: err instanceof Error ? err.message : "Couldn't load this gym." }));
       });
     return () => {
       alive = false;

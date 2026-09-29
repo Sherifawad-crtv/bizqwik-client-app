@@ -40,43 +40,44 @@ test("Home loads with one data request, and asks who the member is only once", a
   expect(calls.filter((c) => c === "client/classes" || c === "client/notifications")).toEqual([]);
 });
 
-test("quick actions never show one that isn't this member's while loading", async ({ page }) => {
+test("until Home's data is here there is only a loading screen, then everything appears together", async ({ page }) => {
   await open(page);
   await slow(page, /\/client\/home$/, 1500);
-  const seen = new Set<string>();
   await signIn(page);
-  // Watch every frame until Home has its data.
-  const deadline = Date.now() + 4000;
+  const app = [
+    page.getByRole("group", { name: "Quick actions" }),
+    page.getByTestId("membership-hero"),
+    page.getByRole("heading", { name: /Hi, Zara/ }),
+    page.getByRole("button", { name: "Profile" }),
+    page.getByRole("button", { name: "Bookings" }),
+  ];
+  // Check every 40ms across the wait: none of the app may appear early.
+  const deadline = Date.now() + 1200;
   while (Date.now() < deadline) {
-    for (const t of await page.getByRole("group", { name: "Quick actions" }).getByRole("button").allInnerTexts()) seen.add(t.trim());
-    if (seen.size) break;
+    for (const el of app) expect(await el.count()).toBe(0);
     await page.waitForTimeout(40);
   }
-  await expect(page.getByRole("group", { name: "Quick actions" }).getByRole("button")).toHaveText(["Book a class", "Check in", "My bookings"]);
-  for (const t of await page.getByRole("group", { name: "Quick actions" }).getByRole("button").allInnerTexts()) seen.add(t.trim());
-  expect([...seen].sort()).toEqual(["Book a class", "Check in", "My bookings"]);
-});
-
-test("a returning member opens straight onto their Home, even before the server answers", async ({ page }) => {
-  await open(page);
-  await signIn(page);
-  await expect(page.getByTestId("membership-hero")).toContainText("10-Class Pack");
-  // Next launch: a slow network.
-  await slow(page, /\/client\/(branding|home)$|\/me$/, 3000);
-  await page.reload();
-  await expect(page.getByTestId("membership-hero")).toContainText("10-Class Pack", { timeout: 1500 });
+  await expect(page.getByTestId("membership-hero")).toBeVisible();
+  // The moment one part is there, all of it is.
+  for (const el of app) expect(await el.count()).toBeGreaterThan(0);
   await expect(page.getByRole("group", { name: "Quick actions" }).getByRole("button")).toHaveText(["Book a class", "Check in", "My bookings"]);
 });
 
-test("the gym's colours are there from the very first frame on a return visit", async ({ page }) => {
+test("the gym's colours are already applied when the app first appears", async ({ page }) => {
   await open(page, { primaryColor: "#E5322D" });
   await signIn(page);
   await expect(page.getByTestId("membership-hero")).toBeVisible();
-  await slow(page, /\/client\/branding$/, 3000);
-  await page.reload({ waitUntil: "commit" });
-  await page.waitForSelector("#root");
   const color = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bq-primary").trim().toLowerCase());
   expect(color).toBe("#e5322d");
+});
+
+test("nothing about the member is kept on the device, and old saved copies are cleared", async ({ page }) => {
+  // A copy left on the device by an older version.
+  await page.addInitScript(() => localStorage.setItem("bq:home:client-zz", '{"wallet":999}'));
+  await open(page);
+  await signIn(page);
+  await expect(page.getByTestId("membership-hero")).toBeVisible();
+  expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("bq:")))).toEqual([]);
 });
 
 test("a staff login is turned away with a clear message", async ({ page }) => {
@@ -93,17 +94,4 @@ test("a member of another gym can't use this gym's app", async ({ page }) => {
   await expect(page.getByTestId("membership-hero")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.locator('input[type="email"]')).toBeVisible();
-});
-
-test("signing out forgets the member's data on this device", async ({ page }) => {
-  await open(page);
-  await signIn(page);
-  await expect(page.getByTestId("membership-hero")).toBeVisible();
-  const before = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("bq:")).sort());
-  expect(before).toEqual(expect.arrayContaining(["bq:me", "bq:home:client-zz"]));
-  await page.getByRole("button", { name: "Profile" }).click();
-  await page.getByRole("button", { name: /Log out/ }).click();
-  await expect(page.locator('input[type="email"]').or(page.getByRole("button", { name: "Skip" }))).toBeVisible();
-  const after = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("bq:")).sort());
-  expect(after.filter((k) => k === "bq:me" || k.startsWith("bq:home:"))).toEqual([]);
 });

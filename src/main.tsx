@@ -7,6 +7,14 @@ import { FeedbackProvider } from "./lib/feedback";
 import { startAutoUpdate } from "./lib/autoUpdate";
 import "./styles/index.css";
 
+// Earlier versions kept a copy of the member's data on the device. Nothing is
+// kept now; clear whatever an older version left behind.
+try {
+  for (const k of Object.keys(localStorage)) if (k.startsWith("bq:")) localStorage.removeItem(k);
+} catch {
+  // storage blocked — nothing stored anyway
+}
+
 // The camera (QR check-in) only works on a secure, top-level page. If the app
 // is ever reached over plain http, or framed by another site (e.g. a domain
 // forwarded "with masking"), move to the real https page first.

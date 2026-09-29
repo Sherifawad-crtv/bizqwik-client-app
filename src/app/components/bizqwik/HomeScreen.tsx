@@ -1,21 +1,23 @@
 import { EmptyState } from "./EmptyState";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
-import { ClassCarousel, ClassCarouselSkeleton } from "./ClassCard";
+import { ClassCarousel } from "./ClassCard";
 import { BookingSheet } from "./BookingSheet";
 import { BookQuickSheet, BookingsQuickSheet, PlanQuickSheet, PtPickSheet } from "./QuickSheets";
 import { useFeedback } from "../../../lib/feedback";
 import { api, type HomeData, type GymClass, type PtBundle } from "../../../lib/api";
-import { useAuth } from "../../../lib/auth";
-import { cacheGet, cacheSet } from "../../../lib/cache";
 
 // The PT code sheet carries the QR generator; only fetched when opened.
 const PtCodeSheet = lazy(() => import("./PtCodes").then((m) => ({ default: m.PtCodeSheet })));
 import { dayKey, egp } from "../../../lib/plans";
 
 interface HomeScreenProps {
+  /** Home's data — the app shows a loading screen until it has arrived. */
+  data: HomeData;
+  /** Ask the server again (after a booking or a purchase). */
+  onReload: () => void;
   userName: string;
   onWalletClick: () => void;
   onPointsClick: () => void;
@@ -25,49 +27,21 @@ interface HomeScreenProps {
   onCheckIn?: () => void;
   onNotificationsClick: () => void;
   notificationCount: number;
-  /** Home's data includes the unread count, so the bell needs no call of its own. */
-  onUnread?: (n: number) => void;
 }
 
 // Home: the member's plan up top (the hero), wallet and points as small
 // chips, three quick actions, then today's classes as a swipeable row.
-export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onCheckIn, onNotificationsClick, notificationCount, onUnread }: HomeScreenProps) {
+export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onCheckIn, onNotificationsClick, notificationCount }: HomeScreenProps) {
   const feedback = useFeedback();
   const [quick, setQuick] = useState<"book" | "plan" | "bookings" | null>(null);
   const [ptPick, setPtPick] = useState<PtBundle[] | null>(null);
   const [ptCode, setPtCode] = useState<PtBundle | null>(null);
-  // What this member saw last time shows at once; fresh data replaces it.
-  const cacheKey = `home:${useAuth().client?.id ?? ""}`;
-  const [data, setData] = useState<HomeData | null>(() => cacheGet<HomeData>(cacheKey));
-  const classes = data?.upcomingClasses ?? [];
-  const [loading, setLoading] = useState(() => !data);
-  const [error, setError] = useState<string | null>(null);
+  const classes = data.upcomingClasses ?? [];
   const [booking, setBooking] = useState<GymClass | null>(null);
 
-  const load = useCallback(() => {
-    api
-      .home()
-      .then((h) => {
-        setData(h);
-        cacheSet(cacheKey, h);
-        onUnread?.(h.unreadNotifications ?? 0);
-        setError(null);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load your home."))
-      .finally(() => setLoading(false));
-  }, [cacheKey, onUnread]);
-  useEffect(() => {
-    load();
-  }, [load]);
-  // The cached count shows right away too.
-  useEffect(() => {
-    if (data) onUnread?.(data.unreadNotifications ?? 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const today = useMemo(() => classes.filter((c) => dayKey(new Date(c.startsAt)) === dayKey(new Date())), [classes]);
-  const plan = data?.groupPlan ?? null;
-  const pkg = data?.package && data.package.status === "active" ? data.package : null;
+  const plan = data.groupPlan ?? null;
+  const pkg = data.package && data.package.status === "active" ? data.package : null;
   const initials = userName.slice(0, 1).toUpperCase();
 
   // Quick actions do the thing right here: the PT code opens at once, plans
@@ -108,7 +82,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
       </div>
 
       <div className="px-6">
-        {data ? <MembershipHero plan={plan} pkg={pkg} onOpen={onPlanClick} /> : <div className="h-[196px] rounded-[1.75rem] bg-[var(--bq-neutral)] animate-pulse" />}
+        <MembershipHero plan={plan} pkg={pkg} onOpen={onPlanClick} />
 
         {/* Wallet + points, small */}
         <div className="mt-3 grid grid-cols-2 gap-2.5">
@@ -116,40 +90,27 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
             <img src="/3d/wallet.webp" alt="" aria-hidden draggable={false} className="w-9 h-9 flex-none object-contain" />
             <span className="min-w-0">
               <span className="block text-[11px] text-[var(--bq-text-secondary)]">Wallet</span>
-              <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{data ? egp(data.wallet) : "—"}</span>
+              <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{egp(data.wallet)}</span>
             </span>
           </button>
           <button onClick={onPointsClick} className="flex items-center gap-2.5 rounded-[1.1rem] bg-[var(--bq-neutral)] px-3.5 py-3 text-left active:scale-[0.98] transition-transform">
             <img src="/3d/points.webp" alt="" aria-hidden draggable={false} className="w-9 h-9 flex-none object-contain" />
             <span className="min-w-0">
               <span className="block text-[11px] text-[var(--bq-text-secondary)]">Points</span>
-              <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{data ? data.points.toLocaleString() : "—"}</span>
+              <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{data.points.toLocaleString()}</span>
             </span>
           </button>
         </div>
 
         {/* Quick actions */}
-        {/* Which actions a member gets depends on their plan, so none show
-            until it's known — never a wrong one for a moment. */}
-        {data ? (
-          <div className="mt-6 grid grid-cols-3" role="group" aria-label="Quick actions">
-            {actions.map((a) => (
-              <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-2 active:scale-[0.96] transition-transform">
-                <span className="w-14 h-14 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{a.icon}</span>
-                <span className="text-[13px] font-medium text-[var(--bq-text-primary)] leading-tight text-center">{a.label}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-3" aria-hidden data-testid="quick-actions-skeleton">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex flex-col items-center gap-2">
-                <span className="w-14 h-14 rounded-full bg-[var(--bq-neutral)] animate-pulse" />
-                <span className="h-3 w-16 rounded bg-[var(--bq-neutral)] animate-pulse" />
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="mt-6 grid grid-cols-3" role="group" aria-label="Quick actions">
+          {actions.map((a) => (
+            <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-2 active:scale-[0.96] transition-transform">
+              <span className="w-14 h-14 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{a.icon}</span>
+              <span className="text-[13px] font-medium text-[var(--bq-text-primary)] leading-tight text-center">{a.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Today */}
@@ -161,13 +122,7 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
           </button>
         </div>
 
-        {loading && <ClassCarouselSkeleton />}
-        {error && (
-          <div className="text-sm rounded-[0.9rem] px-4 py-3" style={{ color: "#b42318", background: "#fef3f2" }}>
-            {error}
-          </div>
-        )}
-        {!loading && !error && today.length === 0 && (
+        {today.length === 0 && (
           <EmptyState
             icon={<CalendarX />}
             title="No classes today"
@@ -197,14 +152,14 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
           onClose={() => setQuick(null)}
           onBought={() => {
             setQuick(null);
-            load();
+            onReload();
           }}
         />
       )}
       {quick === "bookings" && (
         <BookingsQuickSheet
           onClose={() => setQuick(null)}
-          onChanged={load}
+          onChanged={onReload}
           onBook={() => setQuick("book")}
           onSeeAll={() => {
             setQuick(null);
@@ -232,11 +187,11 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
         <BookingSheet
           cls={booking}
           plan={plan}
-          walletBalance={data?.wallet ?? 0}
+          walletBalance={data.wallet}
           onClose={() => setBooking(null)}
           onBooked={() => {
             setBooking(null);
-            load();
+            onReload();
           }}
         />
       )}
