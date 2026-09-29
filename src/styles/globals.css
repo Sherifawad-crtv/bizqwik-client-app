@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -344,4 +343,20 @@ a {
 
 * {
   scrollbar-width: none;
+}
+
+/* Small shared animations (kept in CSS so they need no JavaScript). */
+@keyframes bq-pop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+@keyframes bq-pulse {
+  0% { opacity: 0.3; transform: scale(1); }
+  66%, 100% { opacity: 0; transform: scale(1.5); }
+}
+.bq-pop { animation: bq-pop 220ms cubic-bezier(.34,1.56,.64,1); }
+.bq-pulse { animation: bq-pulse 3s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .bq-pop, .bq-pulse { animation: none; }
+  .bq-pulse { opacity: 0; }
 }

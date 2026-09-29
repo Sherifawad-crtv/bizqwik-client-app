@@ -1,23 +1,51 @@
-import { useCallback, useEffect, useState } from "react";
-import { IntroScreen } from "./components/bizqwik/IntroScreen";
-import { AuthScreen } from "./components/bizqwik/AuthScreen";
-import { NewPasswordScreen } from "./components/bizqwik/NewPasswordScreen";
+import { lazy, Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
 import { HomeScreen } from "./components/bizqwik/HomeScreen";
-import { ScheduleScreen } from "./components/bizqwik/ScheduleScreen";
-import { MyBookings } from "./components/bizqwik/MyBookings";
-import { WalletScreen } from "./components/bizqwik/WalletScreen";
-import { MembershipScreen } from "./components/bizqwik/MembershipScreen";
-import { RewardsScreen } from "./components/bizqwik/RewardsScreen";
-import { ProfileScreen } from "./components/bizqwik/ProfileScreen";
-import { NotificationsScreen } from "./components/bizqwik/NotificationsScreen";
 import { BottomNav, type NavItem } from "./components/bizqwik/BottomNav";
 import { Fab } from "./components/bizqwik/Fab";
-import { QRScannerScreen } from "./components/bizqwik/QRScannerScreen";
+import { Button } from "./components/bizqwik/Sheet";
 import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../lib/feedback";
 import { syncPushOnSignIn } from "../lib/push";
 import { api, errorCode, type ApiError } from "../lib/api";
+
+// Home is in the first download; every other screen is fetched when first
+// needed (and fetched early once Home is up, so tabs still open instantly).
+// The camera scanner and its QR decoder are the heaviest part of the app.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function screen<M, K extends keyof M>(load: () => Promise<M>, name: K) {
+  return { load, Component: lazy(() => load().then((m) => ({ default: m[name] as unknown as ComponentType<any> }))) };
+}
+const screens = {
+  intro: screen(() => import("./components/bizqwik/IntroScreen"), "IntroScreen"),
+  auth: screen(() => import("./components/bizqwik/AuthScreen"), "AuthScreen"),
+  newPassword: screen(() => import("./components/bizqwik/NewPasswordScreen"), "NewPasswordScreen"),
+  schedule: screen(() => import("./components/bizqwik/ScheduleScreen"), "ScheduleScreen"),
+  bookings: screen(() => import("./components/bizqwik/MyBookings"), "MyBookings"),
+  wallet: screen(() => import("./components/bizqwik/WalletScreen"), "WalletScreen"),
+  membership: screen(() => import("./components/bizqwik/MembershipScreen"), "MembershipScreen"),
+  rewards: screen(() => import("./components/bizqwik/RewardsScreen"), "RewardsScreen"),
+  profile: screen(() => import("./components/bizqwik/ProfileScreen"), "ProfileScreen"),
+  notifications: screen(() => import("./components/bizqwik/NotificationsScreen"), "NotificationsScreen"),
+  scanner: screen(() => import("./components/bizqwik/QRScannerScreen"), "QRScannerScreen"),
+};
+const IntroScreen = screens.intro.Component;
+const AuthScreen = screens.auth.Component;
+const NewPasswordScreen = screens.newPassword.Component;
+const ScheduleScreen = screens.schedule.Component;
+const MyBookings = screens.bookings.Component;
+const WalletScreen = screens.wallet.Component;
+const MembershipScreen = screens.membership.Component;
+const RewardsScreen = screens.rewards.Component;
+const ProfileScreen = screens.profile.Component;
+const NotificationsScreen = screens.notifications.Component;
+const QRScannerScreen = screens.scanner.Component;
+
+function whenIdle(fn: () => void, timeout = 2500) {
+  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  if (ric) ric(fn, { timeout });
+  else window.setTimeout(fn, 800);
+}
 
 type Step = NavItem | "wallet" | "membership" | "rewards" | "notifications";
 const NAV: NavItem[] = ["home", "schedule", "bookings", "profile"];
@@ -33,7 +61,9 @@ const NAV: NavItem[] = ["home", "schedule", "bookings", "profile"];
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-[100svh] overflow-hidden bg-white">
-      <div data-scroll-root className="mx-auto max-w-[430px] h-full overflow-y-auto overscroll-contain bg-white shadow-lg">{children}</div>
+      <div data-scroll-root className="mx-auto max-w-[430px] h-full overflow-y-auto overscroll-contain bg-white shadow-lg">
+        <Suspense fallback={<div className="min-h-full bg-white" />}>{children}</Suspense>
+      </div>
     </div>
   );
 }
@@ -79,15 +109,23 @@ function App() {
     api.notifications().then((r) => setUnread(r.unread)).catch(() => {});
   }, []);
 
+  // Once per signed-in member (not on every refresh of their details). Home
+  // brings the unread count itself; push setup and the other screens' code
+  // wait until the page has settled.
+  const clientId = auth.client?.id;
   useEffect(() => {
-    if (!auth.client) return;
-    setStep(openedFromPush() ? "notifications" : "home");
-    refreshUnread();
-    syncPushOnSignIn();
+    if (!clientId) return;
+    const fromPush = openedFromPush();
+    setStep(fromPush ? "notifications" : "home");
+    if (fromPush) refreshUnread();
+    whenIdle(() => {
+      syncPushOnSignIn();
+      for (const s of Object.values(screens)) if (s !== screens.intro && s !== screens.auth && s !== screens.newPassword) void s.load();
+    });
     const onVisible = () => document.visibilityState === "visible" && refreshUnread();
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [auth.client, refreshUnread]);
+  }, [clientId, refreshUnread]);
 
   // Every screen change starts at the top.
   useEffect(() => {
@@ -122,11 +160,29 @@ function App() {
   if (!auth.client) {
     return (
       <Shell>
-        {!introDone ? (
+        {!introDone && !auth.notice ? (
           <IntroScreen currentSlide={currentSlide} onSlideChange={setCurrentSlide} onComplete={() => setIntroDone(true)} />
         ) : (
           <AuthScreen />
         )}
+      </Shell>
+    );
+  }
+
+  // Each gym has its own app address. A member of another gym who signs in
+  // here would see their own data under this gym's name — send them home.
+  if (branding.data && auth.client.orgId !== branding.data.org.id) {
+    return (
+      <Shell>
+        <div className="min-h-full flex items-center justify-center px-8 text-center">
+          <div>
+            <div className="font-display text-[22px] text-[var(--bq-text-primary)] mb-2">This isn't your gym's app</div>
+            <p className="text-[var(--bq-text-secondary)] text-sm mb-6">Your membership is with another gym. Open the app link your gym gave you, or sign out to use a different account here.</p>
+            <Button fullWidth onClick={() => void auth.signOut()}>
+              Sign out
+            </Button>
+          </div>
+        </div>
       </Shell>
     );
   }
@@ -180,6 +236,7 @@ function App() {
           onScheduleClick={() => go("schedule")}
           onBookingsClick={() => go("bookings")}
           onCheckIn={() => setScanning(true)}
+          onUnread={setUnread}
           {...bell}
         />
       )}

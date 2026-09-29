@@ -1,14 +1,18 @@
 import { EmptyState } from "./EmptyState";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
 import { ClassCarousel, ClassCarouselSkeleton } from "./ClassCard";
 import { BookingSheet } from "./BookingSheet";
 import { BookQuickSheet, BookingsQuickSheet, PlanQuickSheet, PtPickSheet } from "./QuickSheets";
-import { PtCodeSheet } from "./PtCodes";
 import { useFeedback } from "../../../lib/feedback";
 import { api, type HomeData, type GymClass, type PtBundle } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth";
+import { cacheGet, cacheSet } from "../../../lib/cache";
+
+// The PT code sheet carries the QR generator; only fetched when opened.
+const PtCodeSheet = lazy(() => import("./PtCodes").then((m) => ({ default: m.PtCodeSheet })));
 import { dayKey, egp } from "../../../lib/plans";
 
 interface HomeScreenProps {
@@ -21,34 +25,45 @@ interface HomeScreenProps {
   onCheckIn?: () => void;
   onNotificationsClick: () => void;
   notificationCount: number;
+  /** Home's data includes the unread count, so the bell needs no call of its own. */
+  onUnread?: (n: number) => void;
 }
 
 // Home: the member's plan up top (the hero), wallet and points as small
 // chips, three quick actions, then today's classes as a swipeable row.
-export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onCheckIn, onNotificationsClick, notificationCount }: HomeScreenProps) {
+export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onCheckIn, onNotificationsClick, notificationCount, onUnread }: HomeScreenProps) {
   const feedback = useFeedback();
   const [quick, setQuick] = useState<"book" | "plan" | "bookings" | null>(null);
   const [ptPick, setPtPick] = useState<PtBundle[] | null>(null);
   const [ptCode, setPtCode] = useState<PtBundle | null>(null);
-  const [data, setData] = useState<HomeData | null>(null);
-  const [classes, setClasses] = useState<GymClass[]>([]);
-  const [loading, setLoading] = useState(true);
+  // What this member saw last time shows at once; fresh data replaces it.
+  const cacheKey = `home:${useAuth().client?.id ?? ""}`;
+  const [data, setData] = useState<HomeData | null>(() => cacheGet<HomeData>(cacheKey));
+  const classes = data?.upcomingClasses ?? [];
+  const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<string | null>(null);
   const [booking, setBooking] = useState<GymClass | null>(null);
 
   const load = useCallback(() => {
-    Promise.all([api.home(), api.classes()])
-      .then(([h, c]) => {
+    api
+      .home()
+      .then((h) => {
         setData(h);
-        setClasses(c.classes);
+        cacheSet(cacheKey, h);
+        onUnread?.(h.unreadNotifications ?? 0);
         setError(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load your home."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [cacheKey, onUnread]);
   useEffect(() => {
     load();
   }, [load]);
+  // The cached count shows right away too.
+  useEffect(() => {
+    if (data) onUnread?.(data.unreadNotifications ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const today = useMemo(() => classes.filter((c) => dayKey(new Date(c.startsAt)) === dayKey(new Date())), [classes]);
   const plan = data?.groupPlan ?? null;
@@ -114,14 +129,27 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
         </div>
 
         {/* Quick actions */}
-        <div className="mt-6 grid grid-cols-3" role="group" aria-label="Quick actions">
-          {actions.map((a) => (
-            <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-2 active:scale-[0.96] transition-transform">
-              <span className="w-14 h-14 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{a.icon}</span>
-              <span className="text-[13px] font-medium text-[var(--bq-text-primary)] leading-tight text-center">{a.label}</span>
-            </button>
-          ))}
-        </div>
+        {/* Which actions a member gets depends on their plan, so none show
+            until it's known — never a wrong one for a moment. */}
+        {data ? (
+          <div className="mt-6 grid grid-cols-3" role="group" aria-label="Quick actions">
+            {actions.map((a) => (
+              <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-2 active:scale-[0.96] transition-transform">
+                <span className="w-14 h-14 rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{a.icon}</span>
+                <span className="text-[13px] font-medium text-[var(--bq-text-primary)] leading-tight text-center">{a.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-3" aria-hidden data-testid="quick-actions-skeleton">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <span className="w-14 h-14 rounded-full bg-[var(--bq-neutral)] animate-pulse" />
+                <span className="h-3 w-16 rounded bg-[var(--bq-neutral)] animate-pulse" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Today */}
@@ -194,7 +222,11 @@ export function HomeScreen({ userName, onWalletClick, onPointsClick, onPlanClick
           }}
         />
       )}
-      {ptCode && <PtCodeSheet bundle={ptCode} onClose={() => setPtCode(null)} />}
+      {ptCode && (
+        <Suspense fallback={null}>
+          <PtCodeSheet bundle={ptCode} onClose={() => setPtCode(null)} />
+        </Suspense>
+      )}
 
       {booking && (
         <BookingSheet

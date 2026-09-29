@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "./supabase";
 import { api, type ClientAccount } from "./api";
+import { cacheGet, cacheSet, cacheClearMember } from "./cache";
 
 interface AuthState {
   ready: boolean; // initial session check done
@@ -9,6 +10,9 @@ interface AuthState {
   // email reset link). The app shows a "set a new password" screen until it
   // clears, regardless of whether a client record has loaded.
   recovering: boolean;
+  // Set when a login that isn't a member of any gym (e.g. staff) was turned
+  // away; the sign-in screen shows it.
+  notice: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   activate: (name: string, email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -20,6 +24,7 @@ const Ctx = createContext<AuthState>({
   ready: false,
   client: null,
   recovering: false,
+  notice: null,
   signIn: async () => {},
   activate: async () => {},
   resetPassword: async () => {},
@@ -31,47 +36,94 @@ export function useAuth() {
   return useContext(Ctx);
 }
 
+const NOT_A_MEMBER = "This app is for gym members. Staff sign in to the Bizqwik business app.";
+
+type CachedMe = { userId: string; client: ClientAccount };
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [client, setClient] = useState<ClientAccount | null>(null);
   const [recovering, setRecovering] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const inflight = useRef<Promise<ClientAccount | null | "offline"> | null>(null);
 
-  const loadClient = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      setClient(null);
-      return;
-    }
-    try {
-      const me = await api.me();
-      setClient(me.client ?? null);
-    } catch {
-      setClient(null);
-    }
+  // Keep the same object while nothing changed, so screens don't reset.
+  const keep = useCallback((next: ClientAccount | null) => {
+    setClient((prev) => (prev && next && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
   }, []);
+
+  // Asks the server who this login is ("offline" when it couldn't be reached).
+  // Concurrent callers share one request.
+  const loadClient = useCallback((): Promise<ClientAccount | null | "offline"> => {
+    if (inflight.current) return inflight.current;
+    const run = (async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (!session) {
+        keep(null);
+        return null;
+      }
+      try {
+        const me = await api.me();
+        if (!me.client) {
+          // A staff or ops login: this app has nothing for it.
+          await supabase.auth.signOut();
+          cacheClearMember();
+          setNotice(NOT_A_MEMBER);
+          keep(null);
+          return null;
+        }
+        cacheSet("me", { userId: session.user.id, client: me.client } satisfies CachedMe);
+        keep(me.client);
+        return me.client;
+      } catch {
+        // Offline: keep whoever we already have.
+        return "offline" as const;
+      }
+    })();
+    inflight.current = run.finally(() => {
+      inflight.current = null;
+    });
+    return inflight.current;
+  }, [keep]);
 
   useEffect(() => {
     let alive = true;
-    loadClient().finally(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const cached = cacheGet<CachedMe>("me");
+      if (data.session && cached && cached.userId === data.session.user.id) {
+        // Returning member: open straight away, confirm with the server behind it.
+        keep(cached.client);
+        if (alive) setReady(true);
+        loadClient();
+        return;
+      }
+      await loadClient();
       if (alive) setReady(true);
-    });
+    })();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       // Arriving via the email reset link: hold the app on the new-password
       // screen instead of dropping the member straight into a session.
       if (event === "PASSWORD_RECOVERY") setRecovering(true);
-      loadClient();
+      // The first session check and hourly token refreshes change nothing
+      // about who is signed in — only real sign-ins/outs reload the account.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED" || event === "PASSWORD_RECOVERY") loadClient();
     });
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadClient]);
+  }, [loadClient, keep]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
+      setNotice(null);
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
       if (error) throw new Error(error.message);
-      await loadClient();
+      const c = await loadClient();
+      if (c === "offline") throw new Error("Couldn't reach your gym. Check your connection and try again.");
+      if (!c) throw new Error(NOT_A_MEMBER);
     },
     [loadClient],
   );
@@ -81,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // chosen password and links the client row, then we sign in.
   const activate = useCallback(
     async (name: string, email: string, password: string) => {
+      setNotice(null);
       await api.signup(name, email, password);
       await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
       await loadClient();
@@ -106,10 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    cacheClearMember();
     await supabase.auth.signOut();
     setClient(null);
     setRecovering(false);
   }, []);
 
-  return <Ctx.Provider value={{ ready, client, recovering, signIn, activate, resetPassword, updatePassword, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ ready, client, recovering, notice, signIn, activate, resetPassword, updatePassword, signOut }}>{children}</Ctx.Provider>;
 }

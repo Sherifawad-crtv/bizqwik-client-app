@@ -102,6 +102,8 @@ export interface MockOptions {
   pt?: unknown[];
   // Brand color override (e.g. a very dark brand).
   primaryColor?: string;
+  // What /me answers (default: a member of this gym).
+  me?: Record<string, unknown>;
   // The bell: notifications (none by default); `onReadAll` sees mark-read calls.
   notifications?: unknown[];
   onReadAll?: (body: Record<string, unknown>) => void;
@@ -110,6 +112,9 @@ export interface MockOptions {
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
 // runs fully offline. Returns nothing; call before page.goto.
 export async function mockBackend(page: Page, opts: MockOptions = {}) {
+  // Like the server: Home carries the unread count, which reading clears.
+  let notificationsRead = false;
+  const unreadCount = () => (notificationsRead ? 0 : ((opts.notifications ?? []) as { read: boolean }[]).filter((n) => !n.read).length);
   // Kill remote images (Unsplash intro art) so nothing hits the network.
   await page.route(/images\.unsplash\.com|unsplash\.com/, (r) => r.abort());
 
@@ -132,7 +137,7 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     const path = new URL(route.request().url()).pathname;
     if (path.includes("/client/branding")) return json(route, opts.primaryColor ? { ...BRANDING, branding: { ...BRANDING.branding, primaryColor: opts.primaryColor } } : BRANDING);
-    if (path.endsWith("/me")) return json(route, { client: MEMBER });
+    if (path.endsWith("/me")) return json(route, opts.me ?? { client: MEMBER });
     const body = () => {
       try {
         return (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
@@ -140,7 +145,7 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
         return {};
       }
     };
-    if (path.endsWith("/client/home")) return json(route, { ...HOME, ...(opts.home ?? {}) });
+    if (path.endsWith("/client/home")) return json(route, { ...HOME, upcomingClasses: opts.classes ?? CLASSES, unreadNotifications: unreadCount(), ...(opts.home ?? {}) });
     if (path.endsWith("/client/plans")) return json(route, { activePlan: null, history: [], wallet: 6800, canBuy: true, offers: OFFERS, ...(opts.plans ?? {}) });
     if (path.endsWith("/client/plans/buy")) {
       if (opts.onBuy) {
@@ -160,6 +165,7 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     }
     if (path.endsWith("/client/pt")) return json(route, { bundles: opts.pt ?? [] });
     if (path.endsWith("/client/notifications/read")) {
+      notificationsRead = true;
       opts.onReadAll?.(body());
       return json(route, { ok: true });
     }
