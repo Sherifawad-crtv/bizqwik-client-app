@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { TrendingUp, TrendingDown, ArrowLeft, Receipt, RotateCcw } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { api, type MoneyEvent, type WalletData } from "../../../lib/api";
+import { num } from "../../../lib/plans";
 
 interface WalletScreenProps {
   onNotificationsClick: () => void;
@@ -22,7 +23,7 @@ function fmtDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
-const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
+const egp = (n: number) => `${num(n)} EGP`;
 
 // Wallet: store-credit balance on top, then every transaction the member has
 // had with the gym however it was paid — purchases (cash, card, wallet or at
@@ -56,7 +57,7 @@ export function WalletScreen({ onNotificationsClick, notificationCount, onBack }
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-[1.5rem] p-6 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
           <div className="text-[var(--bq-on-primary)]/80 text-sm">Store credit</div>
-          <div className="font-display text-[38px] leading-tight mt-1">{data ? Math.round(data.balance).toLocaleString() : "—"} <span className="text-[20px]">EGP</span></div>
+          <div className="font-display text-[38px] leading-tight mt-1 break-words">{data ? num(data.balance) : "—"} <span className="text-[20px]">EGP</span></div>
           <div className="text-[var(--bq-on-primary)]/70 text-xs mt-2">From refunds, compensation & redeemed points · spend it on plans and classes</div>
         </motion.div>
       </div>
@@ -88,7 +89,7 @@ export function WalletScreen({ onNotificationsClick, notificationCount, onBack }
                     {fmtDate(t.at)} · {t.kind === "purchase" || t.kind === "refund" ? METHOD_LABEL[t.method] : t.detail || "Wallet"}
                   </div>
                 </div>
-                <div className={`font-display whitespace-nowrap ${up ? "text-emerald-600" : "text-[var(--bq-text-primary)]"}`}>
+                <div className={`font-display flex-none max-w-[45%] truncate text-right ${up ? "text-emerald-600" : "text-[var(--bq-text-primary)]"}`}>
                   {up ? "+" : down ? "−" : ""}{egp(t.amount)}
                 </div>
               </div>

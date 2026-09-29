@@ -11,7 +11,7 @@ import { api, type HomeData, type GymClass, type PtBundle } from "../../../lib/a
 
 // The PT code sheet carries the QR generator; only fetched when opened.
 const PtCodeSheet = lazy(() => import("./PtCodes").then((m) => ({ default: m.PtCodeSheet })));
-import { dayKey, egp } from "../../../lib/plans";
+import { dayKey, egp, num } from "../../../lib/plans";
 
 interface HomeScreenProps {
   /** Home's data — the app shows a loading screen until it has arrived. */
@@ -97,7 +97,7 @@ export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsCl
             <img src="/3d/points.webp" alt="" aria-hidden draggable={false} className="w-9 h-9 flex-none object-contain" />
             <span className="min-w-0">
               <span className="block text-[11px] text-[var(--bq-text-secondary)]">Points</span>
-              <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{data.points.toLocaleString()}</span>
+              <span className="block truncate font-display text-[15px] text-[var(--bq-text-primary)]">{num(data.points)}</span>
             </span>
           </button>
         </div>
