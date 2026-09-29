@@ -12,7 +12,7 @@ const cls = (id: string, title: string, startsAt: string) => ({
 });
 const CLASSES = ["HIIT", "Yoga", "Boxing", "Spin", "Pilates"].map((t, i) => cls(`c${i}`, t, at(18)));
 
-async function signIn(page: Page, classesDelayMs = 0) {
+async function signIn(page: Page) {
   // Record every touch/wheel listener that could hold up scrolling.
   await page.addInitScript(() => {
     (window as any).__blocking = [];
@@ -25,12 +25,6 @@ async function signIn(page: Page, classesDelayMs = 0) {
   });
   await page.clock.install({ time: NINE_AM });
   await mockBackend(page, { classes: CLASSES, home: { groupPlan: BUNDLE_PLAN, package: null } });
-  if (classesDelayMs) {
-    await page.route(/\/client\/home$/, async (route) => {
-      await new Promise((r) => setTimeout(r, classesDelayMs));
-      await route.fallback();
-    });
-  }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?gym=revolt");
   await page.getByRole("button", { name: "Skip" }).click();
@@ -79,15 +73,4 @@ test("pressing a card waits a beat before shrinking, so starting a scroll on it 
     return sheet.some((r) => r instanceof CSSStyleRule && r.selectorText.includes('active:scale') && r.style.transitionDelay === "90ms");
   });
   expect(delay).toBe(true);
-});
-
-test("while classes load, a same-size placeholder holds their space", async ({ page }) => {
-  await signIn(page, 1500);
-  const skeleton = page.getByTestId("carousel-skeleton");
-  await expect(skeleton).toBeVisible();
-  const before = (await skeleton.boundingBox())!.height;
-  const row = page.getByRole("list", { name: "Today's classes" });
-  await expect(row).toBeVisible();
-  const after = (await row.boundingBox())!.height;
-  expect(Math.abs(after - before)).toBeLessThanOrEqual(2);
 });

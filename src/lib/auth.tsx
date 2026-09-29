@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "./supabase";
 import { api, type ClientAccount } from "./api";
-import { cacheGet, cacheSet, cacheClearMember } from "./cache";
+import { startHome, dropHome } from "./homeData";
 
 interface AuthState {
   ready: boolean; // initial session check done
@@ -38,8 +38,6 @@ export function useAuth() {
 
 const NOT_A_MEMBER = "This app is for gym members. Staff sign in to the Bizqwik business app.";
 
-type CachedMe = { userId: string; client: ClientAccount };
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [client, setClient] = useState<ClientAccount | null>(null);
@@ -64,16 +62,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
       try {
+        // Home's data is asked for alongside "who is this", not after it.
+        startHome();
         const me = await api.me();
         if (!me.client) {
           // A staff or ops login: this app has nothing for it.
+          dropHome();
           await supabase.auth.signOut();
-          cacheClearMember();
           setNotice(NOT_A_MEMBER);
           keep(null);
           return null;
         }
-        cacheSet("me", { userId: session.user.id, client: me.client } satisfies CachedMe);
         keep(me.client);
         return me.client;
       } catch {
@@ -90,15 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      const cached = cacheGet<CachedMe>("me");
-      if (data.session && cached && cached.userId === data.session.user.id) {
-        // Returning member: open straight away, confirm with the server behind it.
-        keep(cached.client);
-        if (alive) setReady(true);
-        loadClient();
-        return;
-      }
       await loadClient();
       if (alive) setReady(true);
     })();
@@ -159,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    cacheClearMember();
+    dropHome();
     await supabase.auth.signOut();
     setClient(null);
     setRecovering(false);
