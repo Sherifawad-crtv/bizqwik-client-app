@@ -38,7 +38,16 @@ export function offerDetail(o: PlanOffer): string {
   return `Every class · ${months}`;
 }
 
-export const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
+/** A whole-number amount. Up to a billion it's written in full; anything bigger
+ * is shortened (12.3B) so it can never outgrow the space it sits in, and
+ * past a trillion it just says so. */
+export function num(n: number): string {
+  const abs = Math.abs(n);
+  if (abs < 1e9) return Math.round(n).toLocaleString();
+  if (abs >= 1e15) return `${n < 0 ? "−" : ""}999T+`;
+  return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+}
+export const egp = (n: number) => `${num(n)} EGP`;
 
 // Bizqwik's default class photos (8, in our own Storage). A class without a
 // photo from the gym always gets the same one, picked from its series (or

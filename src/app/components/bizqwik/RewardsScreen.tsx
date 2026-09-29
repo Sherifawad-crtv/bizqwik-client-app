@@ -5,6 +5,7 @@ import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "lucide-react";
 import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { api, type PointsData } from "../../../lib/api";
+import { num } from "../../../lib/plans";
 
 interface RewardsScreenProps {
   onNotificationsClick: () => void;
@@ -20,7 +21,7 @@ const REASON_LABEL: Record<string, string> = {
   expired: "Points expired",
 };
 
-const n = (v: number) => v.toLocaleString();
+const n = (v: number) => num(v);
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);
