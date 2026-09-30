@@ -164,6 +164,7 @@ function applyTheme(b: Branding) {
     start_url: `${window.location.origin}/${window.location.search}`,
     scope: `${window.location.origin}/`,
     display: "standalone",
+    orientation: "portrait",
     background_color: "#ffffff",
     theme_color: "#ffffff",
     icons: icon ? [{ src: icon, sizes: "512x512", type: "image/png", purpose: "any maskable" }] : [],

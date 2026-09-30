@@ -276,7 +276,8 @@ body {
 
 * {
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  /* Scrolling yes; pinch and double-tap zoom no (`manipulation` still allowed pinch). */
+  touch-action: pan-x pan-y;
 }
 
 body {
@@ -333,8 +334,12 @@ video {
   pointer-events: none;
 }
 
-a {
+a,
+svg,
+canvas {
   -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 ::-webkit-scrollbar {

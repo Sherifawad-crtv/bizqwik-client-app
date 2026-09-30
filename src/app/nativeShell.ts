@@ -12,8 +12,27 @@ export function installNativeShell() {
   document.addEventListener("gesturechange", preventDefault);
   document.addEventListener("gestureend", preventDefault);
 
+  // Form fields keep their normal editing (typing, selecting, paste menu).
+  const editable = (t: EventTarget | null) => t instanceof Element && !!t.closest("input, textarea, select, [contenteditable='true']");
+  const outsideFields = (e: Event) => {
+    if (!editable(e.target)) e.preventDefault();
+  };
+
   // Long-press / right-click context menu (e.g. "Copy", "Save Image").
-  document.addEventListener("contextmenu", preventDefault);
+  document.addEventListener("contextmenu", outsideFields);
+  // Selecting, copying or cutting page text, and dragging images or links out.
+  document.addEventListener("selectstart", outsideFields);
+  document.addEventListener("copy", outsideFields);
+  document.addEventListener("cut", outsideFields);
+  document.addEventListener("dragstart", preventDefault);
+
+  // Stay upright where the browser allows it (installed Android app). iOS
+  // ignores this; the manifest's orientation covers installs.
+  try {
+    void (screen.orientation as any)?.lock?.("portrait")?.catch?.(() => {});
+  } catch {
+    // not supported here
+  }
 
   // No touchmove listener here on purpose: a non-passive one makes the
   // browser wait for JavaScript before every scroll frame, which is what made
