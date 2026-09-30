@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { HomeScreen } from "./components/bizqwik/HomeScreen";
+import { QuickHost, type QuickKind } from "./components/bizqwik/QuickHost";
 import { BottomNav, type NavItem } from "./components/bizqwik/BottomNav";
 import { Fab } from "./components/bizqwik/Fab";
 import { Button } from "./components/bizqwik/Sheet";
@@ -7,7 +8,7 @@ import { useBranding } from "../lib/branding";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../lib/feedback";
 import { syncPushOnSignIn } from "../lib/push";
-import { api, errorCode, type ApiError, type HomeData } from "../lib/api";
+import { api, errorCode, type ApiError, type GymClass, type HomeData } from "../lib/api";
 import { takeHome } from "../lib/homeData";
 
 // Home is in the first download; every other screen is fetched when first
@@ -104,6 +105,11 @@ function App() {
   // Global check-in scanner — reachable from the FAB on every tab, not just
   // from inside Bookings, so a member never has to navigate to check in.
   const [scanning, setScanning] = useState(false);
+  // Quick sheets (book / plan / bookings) open over whichever screen is showing.
+  const [quick, setQuick] = useState<QuickKind | null>(null);
+  const [booking, setBooking] = useState<GymClass | null>(null);
+  // Bumped after a booking or purchase so a list already on screen reloads.
+  const [changes, setChanges] = useState(0);
   const [unread, setUnread] = useState(0);
   // Home's data. The app shows only a loading screen until it has arrived, so
   // nothing appears and then changes.
@@ -271,7 +277,7 @@ function App() {
             {plan?.name && <span className="block text-sm text-[var(--bq-text-tertiary)] mb-1">{plan.name} · 0 sessions remaining</span>}
             {e instanceof Error ? e.message : "No sessions left."}
           </>,
-          { action: { label: "See plans", onClick: () => go("membership") }, dismissLabel: "Got it" },
+          { action: { label: "See plans", onClick: () => setQuick("plan") }, dismissLabel: "Got it" },
         );
       } else {
         feedback.error("Couldn't check you in", e instanceof Error ? e.message : "Check-in failed.");
@@ -293,6 +299,8 @@ function App() {
           onPlanClick={() => go("membership")}
           onScheduleClick={() => go("schedule")}
           onBookingsClick={() => go("bookings")}
+          onQuick={setQuick}
+          onBookClass={setBooking}
           onCheckIn={() => setScanning(true)}
           {...bell}
         />
@@ -300,7 +308,7 @@ function App() {
 
       {step === "schedule" && <ScheduleScreen {...bell} />}
 
-      {step === "bookings" && <MyBookings onBrowse={() => go("schedule")} />}
+      {step === "bookings" && <MyBookings key={changes} onBrowse={() => setQuick("book")} />}
 
       {step === "wallet" && <WalletScreen {...bell} onBack={previousStep === "profile" || previousStep === "home" ? back : undefined} />}
 
@@ -327,6 +335,20 @@ function App() {
         <BottomNav active={tab} onNavigate={(item: NavItem) => go(item)} />
         <Fab onClick={() => setScanning(true)} />
       </div>
+
+      <QuickHost
+        home={home}
+        quick={quick}
+        booking={booking}
+        onQuick={setQuick}
+        onBooking={setBooking}
+        onReload={() => {
+          refreshHome();
+          setChanges((n) => n + 1);
+        }}
+        onSeeSchedule={() => go("schedule")}
+        onSeeBookings={() => go("bookings")}
+      />
 
       {scanning && <QRScannerScreen onClose={() => setScanning(false)} onScanSuccess={onScan} />}
     </Shell>

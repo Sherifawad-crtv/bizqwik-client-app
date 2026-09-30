@@ -31,9 +31,10 @@ test("new member: home and bookings explain the empty schedule", async ({ page }
   await expect(page.getByRole("button", { name: "Get a plan", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Bookings", exact: true }).click();
   await expect(page.getByText("No bookings yet")).toBeVisible();
+  // "Browse classes" opens the booking sheet over this screen — no trip to another tab.
   await page.getByRole("button", { name: "Browse classes" }).click();
-  await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
-  await expect(page.getByText("No classes on this day")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Book a class" })).toBeVisible();
+  await expect(page.getByText("No bookings yet")).toBeVisible();
 });
 
 test("new member: plan, wallet and points explain what fills them", async ({ page }) => {

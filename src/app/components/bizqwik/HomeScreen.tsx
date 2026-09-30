@@ -4,8 +4,8 @@ import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, Scan
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
 import { ClassCarousel } from "./ClassCard";
-import { BookingSheet } from "./BookingSheet";
-import { BookQuickSheet, BookingsQuickSheet, PlanQuickSheet, PtPickSheet } from "./QuickSheets";
+import { PtPickSheet } from "./QuickSheets";
+import type { QuickKind } from "./QuickHost";
 import { useFeedback } from "../../../lib/feedback";
 import { api, type HomeData, type GymClass, type PtBundle } from "../../../lib/api";
 
@@ -24,6 +24,10 @@ interface HomeScreenProps {
   onPlanClick?: () => void;
   onScheduleClick?: () => void;
   onBookingsClick?: () => void;
+  /** Open a quick sheet (book / plan / bookings) — the app shows it over whatever screen is current. */
+  onQuick: (kind: QuickKind) => void;
+  /** Open one class's booking sheet. */
+  onBookClass: (c: GymClass) => void;
   onCheckIn?: () => void;
   onNotificationsClick: () => void;
   notificationCount: number;
@@ -31,13 +35,11 @@ interface HomeScreenProps {
 
 // Home: the member's plan up top (the hero), wallet and points as small
 // chips, three quick actions, then today's classes as a swipeable row.
-export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onCheckIn, onNotificationsClick, notificationCount }: HomeScreenProps) {
+export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsClick, onPlanClick, onScheduleClick, onBookingsClick, onQuick, onBookClass, onCheckIn, onNotificationsClick, notificationCount }: HomeScreenProps) {
   const feedback = useFeedback();
-  const [quick, setQuick] = useState<"book" | "plan" | "bookings" | null>(null);
   const [ptPick, setPtPick] = useState<PtBundle[] | null>(null);
   const [ptCode, setPtCode] = useState<PtBundle | null>(null);
   const classes = data.upcomingClasses ?? [];
-  const [booking, setBooking] = useState<GymClass | null>(null);
 
   const today = useMemo(() => classes.filter((c) => dayKey(new Date(c.startsAt)) === dayKey(new Date())), [classes]);
   const plan = data.groupPlan ?? null;
@@ -61,11 +63,11 @@ export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsCl
     ? { label: "My PT code", icon: <QrCode className="w-5 h-5" />, onClick: showPtCode }
     : plan
       ? { label: "Check in", icon: <ScanLine className="w-5 h-5" />, onClick: onCheckIn }
-      : { label: "Get a plan", icon: <BadgeCheck className="w-5 h-5" />, onClick: () => setQuick("plan") };
+      : { label: "Get a plan", icon: <BadgeCheck className="w-5 h-5" />, onClick: () => onQuick("plan") };
   const actions = [
-    { label: "Book a class", icon: <CalendarPlus className="w-5 h-5" />, onClick: () => setQuick("book") },
+    { label: "Book a class", icon: <CalendarPlus className="w-5 h-5" />, onClick: () => onQuick("book") },
     middle,
-    { label: "My bookings", icon: <Ticket className="w-5 h-5" />, onClick: () => setQuick("bookings") },
+    { label: "My bookings", icon: <Ticket className="w-5 h-5" />, onClick: () => onQuick("bookings") },
   ];
 
   return (
@@ -130,43 +132,9 @@ export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsCl
             action={classes.length > 0 && onScheduleClick ? { label: "See the schedule", onClick: onScheduleClick } : undefined}
           />
         )}
-        {today.length > 0 && <ClassCarousel classes={today} onOpen={setBooking} label="Today's classes" />}
+        {today.length > 0 && <ClassCarousel classes={today} onOpen={onBookClass} label="Today's classes" />}
       </div>
 
-      {quick === "book" && (
-        <BookQuickSheet
-          classes={classes}
-          onClose={() => setQuick(null)}
-          onPick={(c) => {
-            setQuick(null);
-            setBooking(c);
-          }}
-          onSeeAll={() => {
-            setQuick(null);
-            onScheduleClick?.();
-          }}
-        />
-      )}
-      {quick === "plan" && (
-        <PlanQuickSheet
-          onClose={() => setQuick(null)}
-          onBought={() => {
-            setQuick(null);
-            onReload();
-          }}
-        />
-      )}
-      {quick === "bookings" && (
-        <BookingsQuickSheet
-          onClose={() => setQuick(null)}
-          onChanged={onReload}
-          onBook={() => setQuick("book")}
-          onSeeAll={() => {
-            setQuick(null);
-            onBookingsClick?.();
-          }}
-        />
-      )}
       {ptPick && (
         <PtPickSheet
           bundles={ptPick}
@@ -183,18 +151,6 @@ export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsCl
         </Suspense>
       )}
 
-      {booking && (
-        <BookingSheet
-          cls={booking}
-          plan={plan}
-          walletBalance={data.wallet}
-          onClose={() => setBooking(null)}
-          onBooked={() => {
-            setBooking(null);
-            onReload();
-          }}
-        />
-      )}
     </div>
   );
 }
