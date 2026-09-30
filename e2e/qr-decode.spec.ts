@@ -90,6 +90,16 @@ test("check-in with no sessions left opens the no-sessions popup", async ({ page
   await expect(sheet).toHaveCount(0);
 });
 
+// "See plans" opens the plans sheet right there, not another tab.
+test("no sessions left: See plans opens the plans sheet in place", async ({ page }) => {
+  await signInAndScan(page, {
+    status: 400,
+    body: { error: "You've used all 10 sessions of 10 Classes.", code: "no_sessions", plan: { name: "10 Classes" } },
+  });
+  await page.getByRole("dialog", { name: "No sessions left" }).getByRole("button", { name: "See plans" }).click();
+  await expect(page.getByRole("dialog", { name: /plan/i })).toBeVisible();
+});
+
 // Anything else that goes wrong is a branded modal that waits to be dismissed.
 test("a refused check-in explains itself in a modal that stays until dismissed", async ({ page }) => {
   await signInAndScan(page, { status: 400, body: { error: "That QR isn't your gym's check-in code." } });
