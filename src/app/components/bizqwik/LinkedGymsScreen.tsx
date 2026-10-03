@@ -61,7 +61,7 @@ export function LinkedGymsScreen({ onBack }: LinkedGymsScreenProps) {
   return (
     <div className="min-h-screen bg-[var(--bq-neutral)]">
       {/* Header */}
-      <div className="bg-white pt-16 pb-6 px-6 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white pt-[calc(env(safe-area-inset-top)+16px)] pb-6 px-6 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4 mb-4">
           <button
             onClick={onBack}

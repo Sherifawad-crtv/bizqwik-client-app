@@ -68,7 +68,7 @@ export function ScheduleScreen({ onNotificationsClick, notificationCount }: { on
   return (
     <div className="min-h-full bg-white pb-28">
       {/* Hero: the date picker */}
-      <div className="px-6 pt-14 pb-5 bg-[var(--bq-neutral)] rounded-b-[2rem]">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-5 bg-[var(--bq-neutral)] rounded-b-[2rem]">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[var(--bq-text-secondary)] text-[13px]">{selected.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</div>

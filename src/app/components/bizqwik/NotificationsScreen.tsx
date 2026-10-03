@@ -80,7 +80,7 @@ export function NotificationsScreen({ onBack, onRead }: { onBack: () => void; on
 
   return (
     <div className="min-h-full bg-white pb-28">
-      <div className="px-6 pt-14 pb-4 flex items-center gap-3">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-4 flex items-center gap-3">
         <button onClick={onBack} aria-label="Back" className="w-10 h-10 rounded-xl bg-[var(--bq-neutral)] flex items-center justify-center">
           <ArrowLeft className="w-5 h-5" />
         </button>

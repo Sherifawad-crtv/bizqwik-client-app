@@ -69,7 +69,7 @@ export function PricesScreen({ onNotificationsClick, notificationCount }: Prices
 
   return (
     <div className="min-h-full bg-white pb-28">
-      <div className="px-6 pt-14 pb-4 flex items-center justify-between">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-4 flex items-center justify-between">
         <h1 className="font-display text-[24px] text-[var(--bq-text-primary)]">Prices</h1>
         <NotificationBell count={notificationCount} onClick={onNotificationsClick} />
       </div>

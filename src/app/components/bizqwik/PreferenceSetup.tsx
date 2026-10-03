@@ -227,7 +227,7 @@ export function PreferenceSetup({ onComplete }: PreferenceSetupProps) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Progress Bar */}
-      <div className="px-6 pt-12 pb-6">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-6">
         <div className="flex gap-2">
           {[1, 2, 3].map((s) => (
             <div

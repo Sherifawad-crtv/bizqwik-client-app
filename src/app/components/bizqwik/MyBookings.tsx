@@ -40,7 +40,7 @@ export function MyBookings({ onBrowse }: { onBrowse?: () => void } = {}) {
 
   return (
     <div className="min-h-full bg-white pb-28">
-      <div className="px-6 pt-14 pb-4">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-4">
         <h1 className="font-display text-[24px] text-[var(--bq-text-primary)]">My bookings</h1>
       </div>
 

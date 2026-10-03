@@ -43,7 +43,7 @@ export function WalletScreen({ onNotificationsClick, notificationCount, onBack }
 
   return (
     <div className="min-h-full bg-white pb-28">
-      <div className="px-6 pt-14 pb-4 flex items-center justify-between">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {onBack && (
             <button onClick={onBack} className="w-10 h-10 rounded-xl bg-[var(--bq-neutral)] flex items-center justify-center"><ArrowLeft className="w-5 h-5" /></button>
