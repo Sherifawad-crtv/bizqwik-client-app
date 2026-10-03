@@ -109,6 +109,8 @@ export interface MockOptions {
   onReadAll?: (body: Record<string, unknown>) => void;
   // The gym's locations (none by default); `onSetLocation` sees the member's choice.
   locations?: { id: string; name: string }[];
+  // "solo" gyms take no bookings.
+  mode?: "solo" | "team";
   onSetLocation?: (body: Record<string, unknown>) => void;
 }
 
@@ -141,7 +143,7 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     const path = new URL(route.request().url()).pathname;
     if (path.includes("/client/branding")) {
       const b = opts.primaryColor ? { ...BRANDING, branding: { ...BRANDING.branding, primaryColor: opts.primaryColor } } : BRANDING;
-      return json(route, { ...b, locations: opts.locations ?? [] });
+      return json(route, { ...b, org: { ...b.org, mode: opts.mode ?? "team" }, locations: opts.locations ?? [] });
     }
     if (path.endsWith("/me")) return json(route, opts.me ?? { client: MEMBER });
     const body = () => {

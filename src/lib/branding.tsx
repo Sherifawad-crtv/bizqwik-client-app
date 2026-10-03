@@ -218,3 +218,9 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
 
   return <Ctx.Provider value={state}>{children}</Ctx.Provider>;
 }
+
+
+/** A solo gym takes no bookings: classes are shown as "what's on" only. */
+export function useClassesReadOnly(): boolean {
+  return useBranding().data?.org.mode === "solo";
+}

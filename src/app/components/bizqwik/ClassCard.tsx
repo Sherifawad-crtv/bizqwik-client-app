@@ -1,3 +1,4 @@
+import { useClassesReadOnly } from "../../../lib/branding";
 import { Clock, Check } from "lucide-react";
 import type { Going, GymClass } from "../../../lib/api";
 import { defaultClassImage, egp, relativeWhen, timeLabel } from "../../../lib/plans";
@@ -41,13 +42,16 @@ export function AvatarStack({ going, dark = true, max = 4, compact = false }: { 
 /** A class as a tall photo card with everything laid over the picture. The
  * whole card is the button — tapping it opens booking. */
 export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOpen: (c: GymClass) => void; className?: string }) {
+  // A solo gym takes no bookings: the card is information only.
+  const readOnly = useClassesReadOnly();
   const own = !!cls.imageUrl;
   const img = cls.imageUrl || defaultClassImage(cls.seriesId || cls.id);
   const start = new Date(cls.startsAt);
   const chip = cls.coverage === "plan" ? "On your plan" : cls.price > 0 ? egp(cls.price) : "Free";
   return (
     <button
-      onClick={() => onOpen(cls)}
+      onClick={() => !readOnly && onOpen(cls)}
+      disabled={readOnly}
       aria-label={`${cls.title}, ${timeLabel(start)}${cls.booked ? ", booked" : ""}`}
       data-testid="class-card"
       className={`relative flex-none aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-neutral-900 text-left active:scale-[0.98] transition-transform ${className}`}
@@ -57,7 +61,7 @@ export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOp
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" />
 
       <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-2">
-        <span className="rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">{chip}</span>
+        {readOnly ? <span /> : <span className="rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">{chip}</span>}
         {cls.booked && (
           <span className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--bq-primary-readable)]">
             <Check className="h-3 w-3" strokeWidth={3} /> Booked
@@ -71,7 +75,7 @@ export function ClassCard({ cls, onOpen, className = "" }: { cls: GymClass; onOp
           <Clock className="h-3.5 w-3.5" /> {timeLabel(start)}
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
-          <AvatarStack going={cls.going} max={3} compact />
+          {readOnly ? <span /> : <AvatarStack going={cls.going} max={3} compact />}
           <span className="flex-none rounded-full bg-[var(--bq-primary-on-dark)] px-3 py-1.5 text-[11px] font-semibold text-[var(--bq-on-primary-on-dark)]">
             {relativeWhen(cls.startsAt)}
           </span>

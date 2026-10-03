@@ -23,7 +23,7 @@ export function PtCodes({ bundles }: { bundles: PtBundle[] }) {
               {b.sessionsRemaining} of {b.sessionsIncluded} sessions left
             </div>
             <div className="text-[var(--bq-text-tertiary)] text-xs mt-0.5">
-              {b.name} · expires {shortDate(b.expiryDate)}
+              {b.name}{new Date(b.expiryDate).getFullYear() - new Date().getFullYear() >= 5 ? "" : ` · expires ${shortDate(b.expiryDate)}`}
             </div>
             <button
               onClick={() => setOpen(b)}
