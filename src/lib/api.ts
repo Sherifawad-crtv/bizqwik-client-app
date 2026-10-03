@@ -49,8 +49,11 @@ export const errorCode = (e: unknown): string | undefined => (e as ApiError)?.co
 export interface Branding {
   org: { id: string; name: string; slug: string; status: string };
   branding: { appName: string; logoUrl: string | null; iconUrl: string | null; primaryColor: string | null; onboardingAssets: string[] };
+  /** The gym's locations (empty or missing when it has just one place). */
+  locations?: GymLocation[];
 }
-export interface ClientAccount { id: string; orgId: string; name: string; phone: string | null; email: string | null }
+export interface GymLocation { id: string; name: string }
+export interface ClientAccount { id: string; orgId: string; name: string; phone: string | null; email: string | null; homeLocationId?: string | null }
 export interface MembershipInstance { id: string; expiryDate: string; status: string; invitationsRemaining: number }
 export interface PackageInstance { id: string; sessionsRemaining: number; sessionsIncluded: number; expiryDate: string; status: string }
 /** The member's one group plan: an all-access membership, one class's monthly,
@@ -153,6 +156,8 @@ export const api = {
   // authed (member)
   me: () => callFn<{ client: ClientAccount | null }>("me"),
   home: () => callFn<HomeData>("client/home"),
+  // The member's location: their classes and plans are that location's.
+  setLocation: (locationId: string) => callFn<{ ok: true; homeLocationId: string | null }>("client/location", { method: "POST", body: { locationId } }),
   classes: () => callFn<{ activePlan: GroupPlan | null; classes: GymClass[] }>("client/classes"),
   // Plan-covered sessions book with no payment; otherwise pass payMethod.
   // `useDropIn` pays per class even when the plan would cover it;

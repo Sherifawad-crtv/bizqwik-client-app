@@ -10,6 +10,7 @@ import { useFeedback } from "../lib/feedback";
 import { syncPushOnSignIn } from "../lib/push";
 import { api, errorCode, type ApiError, type GymClass, type HomeData } from "../lib/api";
 import { takeHome } from "../lib/homeData";
+import { readPickedLocation, savePickedLocation } from "../lib/memberLocation";
 
 // Home is in the first download; every other screen is fetched when first
 // needed (and fetched early once Home is up, so tabs still open instantly).
@@ -20,6 +21,7 @@ function screen<M, K extends keyof M>(load: () => Promise<M>, name: K) {
 }
 const screens = {
   intro: screen(() => import("./components/bizqwik/IntroScreen"), "IntroScreen"),
+  location: screen(() => import("./components/bizqwik/LocationScreen"), "LocationScreen"),
   auth: screen(() => import("./components/bizqwik/AuthScreen"), "AuthScreen"),
   newPassword: screen(() => import("./components/bizqwik/NewPasswordScreen"), "NewPasswordScreen"),
   schedule: screen(() => import("./components/bizqwik/ScheduleScreen"), "ScheduleScreen"),
@@ -32,6 +34,7 @@ const screens = {
   scanner: screen(() => import("./components/bizqwik/QRScannerScreen"), "QRScannerScreen"),
 };
 const IntroScreen = screens.intro.Component;
+const LocationScreen = screens.location.Component;
 const AuthScreen = screens.auth.Component;
 const NewPasswordScreen = screens.newPassword.Component;
 const ScheduleScreen = screens.schedule.Component;
@@ -115,6 +118,15 @@ function App() {
   // nothing appears and then changes.
   const [home, setHome] = useState<HomeData | null>(null);
   const [homeError, setHomeError] = useState<string | null>(null);
+  // Gyms with more than one location: which one this member trains at. Picked
+  // before sign-in (remembered on the phone), then saved to their account.
+  const locations = branding.data?.locations ?? [];
+  const multiLocation = locations.length > 1;
+  const [picked, setPicked] = useState<string | null>(() => readPickedLocation(branding.slug));
+  const pickedValid = !!picked && locations.some((l) => l.id === picked);
+  const [savedLocation, setSavedLocation] = useState<string | null>(null);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [changingLocation, setChangingLocation] = useState(false);
 
   const applyHome = useCallback((h: HomeData) => {
     setHome(h);
@@ -135,6 +147,41 @@ function App() {
   const refreshUnread = useCallback(() => {
     api.notifications().then((r) => setUnread(r.unread)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!picked && branding.slug) setPicked(readPickedLocation(branding.slug));
+  }, [branding.slug, picked]);
+
+  const memberLocation = savedLocation ?? auth.client?.homeLocationId ?? null;
+  const chooseLocation = useCallback(
+    async (id: string) => {
+      savePickedLocation(branding.slug, id);
+      setPicked(id);
+      if (!auth.client) return;
+      setSavingLocation(true);
+      try {
+        await api.setLocation(id);
+        setSavedLocation(id);
+        setChangingLocation(false);
+        refreshHome();
+        setChanges((n) => n + 1);
+      } catch (e) {
+        feedback.error("Couldn't save your location", e instanceof Error ? e.message : "Please try again.");
+      } finally {
+        setSavingLocation(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [branding.slug, auth.client, refreshHome],
+  );
+
+  // Signed in without a location on the account yet: use the one picked
+  // before sign-in, if any.
+  useEffect(() => {
+    if (!multiLocation || !auth.client || auth.client.homeLocationId || savedLocation || !pickedValid || savingLocation) return;
+    void chooseLocation(picked!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiLocation, auth.client?.id, auth.client?.homeLocationId, pickedValid]);
 
   // Once per signed-in member (not on every refresh of their details). Home
   // brings the unread count itself; push setup and the other screens' code
@@ -206,6 +253,8 @@ function App() {
       <Shell>
         {!introDone && !auth.notice ? (
           <IntroScreen currentSlide={currentSlide} onSlideChange={setCurrentSlide} onComplete={() => setIntroDone(true)} />
+        ) : multiLocation && !pickedValid && !auth.notice ? (
+          <LocationScreen locations={locations} onPick={(id: string) => void chooseLocation(id)} />
         ) : (
           <AuthScreen />
         )}
@@ -227,6 +276,26 @@ function App() {
             </Button>
           </div>
         </div>
+      </Shell>
+    );
+  }
+
+  // A member of a multi-location gym needs a location before anything else:
+  // the one picked before sign-in is being saved, or they choose one now.
+  if (multiLocation && !memberLocation) {
+    if (pickedValid && savingLocation) return <Splash />;
+    return (
+      <Shell>
+        <LocationScreen locations={locations} current={null} busy={savingLocation} onPick={(id: string) => void chooseLocation(id)} />
+      </Shell>
+    );
+  }
+
+  // Changing location from Profile.
+  if (changingLocation) {
+    return (
+      <Shell>
+        <LocationScreen locations={locations} current={memberLocation} busy={savingLocation} onBack={() => setChangingLocation(false)} onPick={(id: string) => void chooseLocation(id)} />
       </Shell>
     );
   }
@@ -325,6 +394,8 @@ function App() {
           onMembershipClick={() => go("membership")}
           onWalletClick={() => go("wallet")}
           onRewardsClick={() => go("rewards")}
+          locationName={multiLocation ? (locations.find((l) => l.id === memberLocation)?.name ?? null) : null}
+          onLocationClick={multiLocation ? () => setChangingLocation(true) : undefined}
         />
       )}
 

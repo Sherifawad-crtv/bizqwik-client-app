@@ -1,4 +1,4 @@
-import { ChevronRight, Award, Wallet, Gift, LogOut, Bell } from "lucide-react";
+import { ChevronRight, Award, Wallet, Gift, LogOut, Bell, MapPin } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { useAuth } from "../../../lib/auth";
 import { useBranding } from "../../../lib/branding";
@@ -10,6 +10,9 @@ interface ProfileScreenProps {
   onMembershipClick?: () => void;
   onWalletClick?: () => void;
   onRewardsClick?: () => void;
+  // Gyms with more than one location: where this member trains, and changing it.
+  locationName?: string | null;
+  onLocationClick?: () => void;
   // legacy handlers (unsupported in v1) kept optional for call-site compatibility
   onPersonalInfoClick?: () => void;
   onLinkedGymsClick?: () => void;
@@ -17,7 +20,7 @@ interface ProfileScreenProps {
   onSupportClick?: () => void;
 }
 
-export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onLogout, onMembershipClick, onWalletClick, onRewardsClick }: ProfileScreenProps) {
+export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onLogout, onMembershipClick, onWalletClick, onRewardsClick, locationName, onLocationClick }: ProfileScreenProps) {
   const { client } = useAuth();
   const { data } = useBranding();
   const gym = data?.branding.appName ?? "Bizqwik";
@@ -41,6 +44,7 @@ export function ProfileScreen({ onNotificationsClick, notificationCount = 0, onL
       </div>
 
       <div className="px-6 mt-8 flex flex-col gap-2">
+        {onLocationClick && <MenuItem icon={<MapPin className="w-5 h-5" />} label={`Location · ${locationName ?? "Choose"}`} onClick={onLocationClick} />}
         <MenuItem icon={<Award className="w-5 h-5" />} label="My plan" onClick={onMembershipClick} />
         <MenuItem icon={<Wallet className="w-5 h-5" />} label="Wallet" onClick={onWalletClick} />
         <MenuItem icon={<Gift className="w-5 h-5" />} label="Points" onClick={onRewardsClick} />
