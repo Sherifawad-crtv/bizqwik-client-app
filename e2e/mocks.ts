@@ -107,6 +107,9 @@ export interface MockOptions {
   // The bell: notifications (none by default); `onReadAll` sees mark-read calls.
   notifications?: unknown[];
   onReadAll?: (body: Record<string, unknown>) => void;
+  // The gym's locations (none by default); `onSetLocation` sees the member's choice.
+  locations?: { id: string; name: string }[];
+  onSetLocation?: (body: Record<string, unknown>) => void;
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -136,7 +139,10 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
   await page.route(/\/functions\/v1\/make-server-980e1cbf\//, (route) => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     const path = new URL(route.request().url()).pathname;
-    if (path.includes("/client/branding")) return json(route, opts.primaryColor ? { ...BRANDING, branding: { ...BRANDING.branding, primaryColor: opts.primaryColor } } : BRANDING);
+    if (path.includes("/client/branding")) {
+      const b = opts.primaryColor ? { ...BRANDING, branding: { ...BRANDING.branding, primaryColor: opts.primaryColor } } : BRANDING;
+      return json(route, { ...b, locations: opts.locations ?? [] });
+    }
     if (path.endsWith("/me")) return json(route, opts.me ?? { client: MEMBER });
     const body = () => {
       try {
@@ -145,6 +151,16 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
         return {};
       }
     };
+    if (path.endsWith("/client/location")) {
+      let b: Record<string, unknown> = {};
+      try {
+        b = (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
+      } catch {
+        b = {};
+      }
+      opts.onSetLocation?.(b);
+      return json(route, { ok: true, homeLocationId: b.locationId ?? null });
+    }
     if (path.endsWith("/client/home")) return json(route, { ...HOME, upcomingClasses: opts.classes ?? CLASSES, unreadNotifications: unreadCount(), ...(opts.home ?? {}) });
     if (path.endsWith("/client/plans")) return json(route, { activePlan: null, history: [], wallet: 6800, canBuy: true, offers: OFFERS, ...(opts.plans ?? {}) });
     if (path.endsWith("/client/plans/buy")) {
