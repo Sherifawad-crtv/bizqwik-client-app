@@ -55,10 +55,11 @@ export function WalletScreen({ onNotificationsClick, notificationCount, onBack }
 
       <div className="px-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-[1.5rem] p-6 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
-          <div className="text-[var(--bq-on-primary)]/80 text-sm">Store credit</div>
-          <div className="font-display text-[38px] leading-tight mt-1 break-words">{data ? num(data.balance) : "—"} <span className="text-[20px]">EGP</span></div>
-          <div className="text-[var(--bq-on-primary)]/70 text-xs mt-2">From refunds, compensation & redeemed points · spend it on plans and classes</div>
+          className="relative overflow-hidden rounded-[1.5rem] p-6 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]">
+          <img src="/3d/wallet.webp" alt="" aria-hidden draggable={false} className="absolute -right-3 top-3 w-28 h-28 object-contain pointer-events-none select-none" />
+          <div className="relative text-[var(--bq-on-primary)]/80 text-sm">Store credit</div>
+          <div className="relative font-display text-[38px] leading-tight mt-1 break-words pr-24">{data ? num(data.balance) : "—"} <span className="text-[20px]">EGP</span></div>
+          <div className="relative text-[var(--bq-on-primary)]/70 text-xs mt-2 pr-24">From refunds, compensation & redeemed points · spend it on plans and classes</div>
         </motion.div>
       </div>
 

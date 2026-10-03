@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "./solar";
+import { ArrowLeft, Plus, Wallet, Clock, Sparkles } from "./solar";
 import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { api, type PointsData } from "../../../lib/api";
@@ -67,8 +67,8 @@ export function RewardsScreen({ onNotificationsClick, notificationCount, onBack 
 
       <div className="px-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-[1.5rem] p-6 bg-[var(--bq-neutral)]">
-          <div className="w-11 h-11 rounded-2xl bg-[var(--bq-accent)]/15 text-[var(--bq-accent)] flex items-center justify-center mb-3"><Star className="w-6 h-6" /></div>
+          className="relative rounded-[1.5rem] p-6 bg-[var(--bq-neutral)]">
+          <img src="/3d/points.webp" alt="" aria-hidden draggable={false} className="absolute right-4 top-4 w-28 h-28 object-contain pointer-events-none select-none" />
           <div className="text-[var(--bq-text-secondary)] text-sm">Your points</div>
           <div className="font-display text-[42px] leading-tight text-[var(--bq-text-primary)]">{data ? n(data.total) : "—"}</div>
           {data && on && <div className="text-[var(--bq-text-secondary)] text-sm mt-1">worth {n(redeemEgp)} EGP</div>}
