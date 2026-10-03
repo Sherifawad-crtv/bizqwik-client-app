@@ -1,7 +1,7 @@
 import { useClassesReadOnly } from "../../../lib/branding";
 import { Icon, type IconName } from "./Icon";
 
-export type NavItem = "home" | "schedule" | "bookings" | "profile";
+export type NavItem = "home" | "schedule" | "bookings" | "prices" | "profile";
 
 interface BottomNavProps {
   active: NavItem;
@@ -12,6 +12,7 @@ const allNavItems: { id: NavItem; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
   { id: "schedule", label: "Schedule", icon: "calendar" },
   { id: "bookings", label: "Bookings", icon: "ticket" },
+  { id: "prices", label: "Prices", icon: "ticket" },
   { id: "profile", label: "Profile", icon: "account" },
 ];
 
@@ -24,9 +25,9 @@ const ITEM = 50;
 const GAP = 6;
 
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
-  // A solo gym takes no bookings: no Bookings tab.
+  // A solo gym takes no bookings: Prices takes the place of Bookings (pay by InstaPay).
   const readOnly = useClassesReadOnly();
-  const navItems = allNavItems.filter((i) => !(readOnly && i.id === "bookings"));
+  const navItems = allNavItems.filter((i) => (readOnly ? i.id !== "bookings" : i.id !== "prices"));
   const index = Math.max(0, navItems.findIndex((i) => i.id === active));
   return (
     <div

@@ -83,6 +83,13 @@ const POINTS = {
   ledger: [{ id: "pl-1", points: 50, reason: "checkin", createdAt: "2026-09-24T09:00:00Z" }],
 };
 
+export const PRICE_OFFERS = [
+  { offerType: "plan_type", id: "pt-k8", name: "Kids 8 classes", price: 3300, months: 1, count: 8, canRequest: true },
+  { offerType: "plan_type", id: "pt-a8", name: "Adults 8 classes", price: 5000, months: 1, count: 8, canRequest: true },
+  { offerType: "plan_type", id: "pt-a24", name: "Adults 24 classes", price: 12000, months: 3, count: 24, canRequest: true },
+  { offerType: "bundle_type", id: "bt-1", name: "Adults personal training 8 sessions", price: 9000, months: null, expiryDays: null, count: 8, canRequest: true },
+];
+
 const BRANDING = {
   org: { id: "org-revolt", name: "Revolt", slug: "revolt", status: "trial" },
   branding: { appName: "Revolt", logoUrl: null, iconUrl: null, primaryColor: "#5A41FF", onboardingAssets: [] },
@@ -112,6 +119,10 @@ export interface MockOptions {
   // "solo" gyms take no bookings.
   mode?: "solo" | "team";
   onSetLocation?: (body: Record<string, unknown>) => void;
+  // Solo gyms' prices + pay-by-InstaPay; `onPay` sees the request, `onCancelPay` the cancel.
+  prices?: Record<string, unknown>;
+  onPay?: (body: Record<string, unknown>) => { status?: number; body: unknown } | void;
+  onCancelPay?: () => void;
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -165,6 +176,16 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     }
     if (path.endsWith("/client/home")) return json(route, { ...HOME, upcomingClasses: opts.classes ?? CLASSES, unreadNotifications: unreadCount(), ...(opts.home ?? {}) });
     if (path.endsWith("/client/plans")) return json(route, { activePlan: null, history: [], wallet: 6800, canBuy: true, offers: OFFERS, ...(opts.plans ?? {}) });
+    if (path.endsWith("/client/prices")) return json(route, { solo: true, pay: { address: "hh@instapay", qr: null }, activePlan: null, offers: PRICE_OFFERS, pending: null, recent: [], ...(opts.prices ?? {}) });
+    if (path.endsWith("/client/payment-requests")) {
+      const r = opts.onPay?.(body());
+      if (r) return json(route, r.body, r.status ?? 200);
+      return json(route, { request: { id: "req-1", offerType: "plan_type", name: "x", price: 0, status: "pending", note: null, createdAt: "2026-10-04T10:00:00Z" } });
+    }
+    if (path.includes("/client/payment-requests/") && path.endsWith("/cancel")) {
+      opts.onCancelPay?.();
+      return json(route, { ok: true });
+    }
     if (path.endsWith("/client/plans/buy")) {
       if (opts.onBuy) {
         const r = opts.onBuy(body());

@@ -27,6 +27,7 @@ const screens = {
   schedule: screen(() => import("./components/bizqwik/ScheduleScreen"), "ScheduleScreen"),
   bookings: screen(() => import("./components/bizqwik/MyBookings"), "MyBookings"),
   wallet: screen(() => import("./components/bizqwik/WalletScreen"), "WalletScreen"),
+  prices: screen(() => import("./components/bizqwik/PricesScreen"), "PricesScreen"),
   membership: screen(() => import("./components/bizqwik/MembershipScreen"), "MembershipScreen"),
   rewards: screen(() => import("./components/bizqwik/RewardsScreen"), "RewardsScreen"),
   profile: screen(() => import("./components/bizqwik/ProfileScreen"), "ProfileScreen"),
@@ -41,6 +42,7 @@ const ScheduleScreen = screens.schedule.Component;
 const MyBookings = screens.bookings.Component;
 const WalletScreen = screens.wallet.Component;
 const MembershipScreen = screens.membership.Component;
+const PricesScreen = screens.prices.Component;
 const RewardsScreen = screens.rewards.Component;
 const ProfileScreen = screens.profile.Component;
 const NotificationsScreen = screens.notifications.Component;
@@ -53,7 +55,7 @@ function whenIdle(fn: () => void, timeout = 2500) {
 }
 
 type Step = NavItem | "wallet" | "membership" | "rewards" | "notifications";
-const NAV: NavItem[] = ["home", "schedule", "bookings", "profile"];
+const NAV: NavItem[] = ["home", "schedule", "bookings", "prices", "profile"];
 
 // `100svh` (small viewport height), not `100vh`/`min-h-screen` — on iOS
 // Safari, `100vh` is measured against the viewport with the address bar
@@ -378,6 +380,8 @@ function App() {
       {step === "schedule" && <ScheduleScreen {...bell} />}
 
       {step === "bookings" && <MyBookings key={changes} onBrowse={() => setQuick("book")} />}
+
+      {step === "prices" && <PricesScreen {...bell} />}
 
       {step === "wallet" && <WalletScreen {...bell} onBack={previousStep === "profile" || previousStep === "home" ? back : undefined} />}
 
