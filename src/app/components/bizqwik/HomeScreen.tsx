@@ -1,3 +1,4 @@
+import { useClassesReadOnly } from "../../../lib/branding";
 import { EmptyState } from "./EmptyState";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
@@ -64,11 +65,15 @@ export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsCl
     : plan
       ? { label: "Check in", icon: <ScanLine className="w-5 h-5" />, onClick: onCheckIn }
       : { label: "Get a plan", icon: <BadgeCheck className="w-5 h-5" />, onClick: () => onQuick("plan") };
-  const actions = [
-    { label: "Book a class", icon: <CalendarPlus className="w-5 h-5" />, onClick: () => onQuick("book") },
-    middle,
-    { label: "My bookings", icon: <Ticket className="w-5 h-5" />, onClick: () => onQuick("bookings") },
-  ];
+  const readOnlyClasses = useClassesReadOnly();
+  // A solo gym takes no bookings, so only the middle action (check in / PT code / plan) shows.
+  const actions = readOnlyClasses
+    ? [middle]
+    : [
+        { label: "Book a class", icon: <CalendarPlus className="w-5 h-5" />, onClick: () => onQuick("book") },
+        middle,
+        { label: "My bookings", icon: <Ticket className="w-5 h-5" />, onClick: () => onQuick("bookings") },
+      ];
 
   return (
     <div className="min-h-full bg-white pb-28">

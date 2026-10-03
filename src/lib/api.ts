@@ -47,7 +47,7 @@ export const errorCode = (e: unknown): string | undefined => (e as ApiError)?.co
 
 // ---- shapes returned by the backend (subset we use) ----
 export interface Branding {
-  org: { id: string; name: string; slug: string; status: string };
+  org: { id: string; name: string; slug: string; status: string; mode?: "solo" | "team" };
   branding: { appName: string; logoUrl: string | null; iconUrl: string | null; primaryColor: string | null; onboardingAssets: string[] };
   /** The gym's locations (empty or missing when it has just one place). */
   locations?: GymLocation[];
