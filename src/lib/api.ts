@@ -81,6 +81,28 @@ export interface PlanOffer {
   weekdays?: number[];
   startTime?: string;
 }
+/** What a solo gym sells (class plans + PT packages), and how to pay for it. */
+export interface PriceOffer {
+  offerType: "plan_type" | "bundle_type";
+  id: string;
+  name: string;
+  price: number;
+  /** Class plans: valid this many months. */
+  months: number | null;
+  /** Packages: days valid, or null for no expiry. */
+  expiryDays?: number | null;
+  count: number;
+  canRequest: boolean;
+}
+export interface PaymentRequest { id: string; offerType: PriceOffer["offerType"]; name: string; price: number; status: "pending" | "approved" | "rejected" | "cancelled"; note: string | null; createdAt: string }
+export interface PricesData {
+  solo: boolean;
+  pay: { address: string | null; qr: string | null };
+  activePlan: GroupPlan | null;
+  offers: PriceOffer[];
+  pending: PaymentRequest | null;
+  recent: PaymentRequest[];
+}
 export interface PlansData { activePlan: GroupPlan | null; history: GroupPlan[]; wallet: number; canBuy: boolean; offers: PlanOffer[] }
 export interface HomeData {
   name: string;
@@ -168,6 +190,11 @@ export const api = {
   cancelBooking: (id: string) =>
     callFn<{ ok: true; refundedToWallet: number; planCreditReturned?: boolean }>(`client/bookings/${id}/cancel`, { method: "POST" }),
   plans: () => callFn<PlansData>("client/plans"),
+  // Prices + how to pay (solo gyms): pay by InstaPay, upload the receipt, the owner approves.
+  prices: () => callFn<PricesData>("client/prices"),
+  requestPayment: (offer: PriceOffer, proof: string) =>
+    callFn<{ request: PaymentRequest }>("client/payment-requests", { method: "POST", body: { offerType: offer.offerType, id: offer.id, proof } }),
+  cancelPayment: (id: string) => callFn<{ ok: true }>(`client/payment-requests/${id}/cancel`, { method: "POST" }),
   buyPlan: (offer: PlanOffer) =>
     callFn<{ plan: GroupPlan; wallet: number }>("client/plans/buy", {
       method: "POST",
