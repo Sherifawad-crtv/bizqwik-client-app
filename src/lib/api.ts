@@ -186,6 +186,8 @@ export const api = {
   // `confirmActivePlan` acknowledges "you still have a plan running".
   book: (classId: string, opts: { payMethod?: "wallet" | "desk"; useDropIn?: boolean; confirmActivePlan?: boolean } = {}) =>
     callFn<{ booking: Booking }>(`client/classes/${classId}/book`, { method: "POST", body: { ...opts } }),
+  // Solo gyms: "I'm coming" (no payment, no plan) so the owner knows how many to expect.
+  rsvp: (classId: string, going: boolean) => callFn<{ ok: true; going: boolean }>(`client/classes/${classId}/rsvp`, { method: "POST", body: { going } }),
   bookings: () => callFn<{ bookings: Booking[] }>("client/bookings"),
   cancelBooking: (id: string) =>
     callFn<{ ok: true; refundedToWallet: number; planCreditReturned?: boolean }>(`client/bookings/${id}/cancel`, { method: "POST" }),

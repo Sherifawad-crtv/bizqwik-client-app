@@ -123,6 +123,8 @@ export interface MockOptions {
   prices?: Record<string, unknown>;
   onPay?: (body: Record<string, unknown>) => { status?: number; body: unknown } | void;
   onCancelPay?: () => void;
+  // Solo gyms: "I'm coming" taps.
+  onRsvp?: (classId: string, body: Record<string, unknown>) => void;
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -215,6 +217,11 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     if (path.endsWith("/push/vapid-public-key")) return json(route, { publicKey: "BExample" });
     if (path.endsWith("/client/points")) return json(route, typeof opts.points === "function" ? opts.points() : (opts.points ?? POINTS));
     if (path.endsWith("/client/classes")) return json(route, { activePlan: (opts.home?.groupPlan as unknown) ?? null, classes: opts.classes ?? CLASSES });
+    if (path.endsWith("/rsvp")) {
+      const b = body();
+      opts.onRsvp?.(path.split("/").slice(-2, -1)[0], b);
+      return json(route, { ok: true, going: b.going !== false });
+    }
     if (path.includes("/book")) {
       if (opts.onBook) {
         const r = opts.onBook(body());
