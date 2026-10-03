@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Dumbbell, QrCode, CheckCircle2 } from "lucide-react";
+import { Dumbbell, CheckCircle2 } from "lucide-react";
+import { Icon } from "./Icon";
 import { Sheet, Kicker, SheetTitle, SheetSub, Button, useMountedSheet } from "./Sheet";
 import QRCode from "qrcode";
 import type { PtBundle } from "../../../lib/api";
@@ -29,7 +30,7 @@ export function PtCodes({ bundles }: { bundles: PtBundle[] }) {
               onClick={() => setOpen(b)}
               className="mt-3 w-full h-11 rounded-[0.9rem] bg-[var(--bq-primary)] text-[var(--bq-on-primary)] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              <QrCode className="w-5 h-5" /> Show code to your coach
+              <Icon name="qr-code" size={20} /> Show code to your coach
             </button>
           </div>
         ))}

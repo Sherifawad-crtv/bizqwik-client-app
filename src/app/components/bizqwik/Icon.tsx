@@ -22,8 +22,7 @@ const LINEAR = {
   "qr-code": QrCodeIcon,
 } satisfies Record<IconName, typeof HomeSmileIcon>;
 
-// qr-code has no bold-duotone use here (FAB icons stay linear, matching the
-// business app's Fab.tsx convention), so it's left out of this set.
+// qr-code is only ever shown linear (the PT code button), so it has no bold set.
 const BOLD = {
   home: HomeSmileIconBold,
   calendar: CalendarIconBold,

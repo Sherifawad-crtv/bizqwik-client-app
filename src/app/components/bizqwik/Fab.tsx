@@ -1,4 +1,4 @@
-import { Icon } from "./Icon";
+import { ObjectScanIcon } from "@solar-icons/react/bold-duotone/object-scan";
 
 // Global check-in shortcut, always reachable from any tab — mirrors the
 // business app's Fab.tsx (circular, brand-colored, glowing shadow) but
@@ -21,7 +21,7 @@ export function Fab({ onClick, size = 60 }: { onClick: () => void; size?: number
         boxShadow: "var(--glow-primary), 0 10px 24px rgba(0,0,0,.18)",
       }}
     >
-      <Icon name="qr-code" size={size * 0.42} strokeWidth={2} />
+      <ObjectScanIcon size={size * 0.5} />
     </button>
   );
 }
