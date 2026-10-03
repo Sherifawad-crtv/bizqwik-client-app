@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Mail, Phone, QrCode, ChevronRight } from "lucide-react";
+import { Mail, Phone, QrCode, ChevronRight } from "./solar";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 

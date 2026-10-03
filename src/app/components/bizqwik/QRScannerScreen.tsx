@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, AlertCircle, RotateCcw } from "lucide-react";
+import { X, AlertCircle, RotateCcw } from "./solar";
 import { startQrCamera } from "../../../lib/qrCamera";
 
 interface QRScannerScreenProps {

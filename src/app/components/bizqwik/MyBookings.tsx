@@ -1,6 +1,6 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
-import { Calendar as CalendarIcon, X, CalendarPlus } from "lucide-react";
+import { Calendar as CalendarIcon, X, CalendarPlus } from "./solar";
 import { ConfirmSheet } from "./Sheet";
 import { defaultClassImage } from "../../../lib/plans";
 import { api, type Booking } from "../../../lib/api";

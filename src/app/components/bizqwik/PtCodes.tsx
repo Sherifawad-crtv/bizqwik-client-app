@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dumbbell, CheckCircle2 } from "lucide-react";
+import { Dumbbell, CheckCircle2 } from "./solar";
 import { Icon } from "./Icon";
 import { Sheet, Kicker, SheetTitle, SheetSub, Button, useMountedSheet } from "./Sheet";
 import QRCode from "qrcode";

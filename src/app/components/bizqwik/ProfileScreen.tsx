@@ -1,4 +1,4 @@
-import { ChevronRight, Award, Wallet, Gift, LogOut, Bell, MapPin } from "lucide-react";
+import { ChevronRight, Award, Wallet, Gift, LogOut, Bell, MapPin } from "./solar";
 import { NotificationBell } from "./NotificationBell";
 import { useAuth } from "../../../lib/auth";
 import { useBranding } from "../../../lib/branding";

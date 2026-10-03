@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Wallet, Award, TrendingUp, ChevronRight } from "lucide-react";
+import { Wallet, Award, TrendingUp, ChevronRight } from "./solar";
 
 interface WalletSummaryCardProps {
   balance: number;

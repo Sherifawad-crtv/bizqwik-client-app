@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Star, Clock, Calendar } from "lucide-react";
+import { Star, Clock, Calendar } from "./solar";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { Badge } from "../ui/badge";
 

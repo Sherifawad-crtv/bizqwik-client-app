@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Crown, TrendingUp } from "lucide-react";
+import { Crown, TrendingUp } from "./solar";
 
 interface MembershipCardProps {
   memberName: string;

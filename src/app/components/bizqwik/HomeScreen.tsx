@@ -1,7 +1,7 @@
 import { useClassesReadOnly } from "../../../lib/branding";
 import { EmptyState } from "./EmptyState";
 import { lazy, Suspense, useMemo, useState } from "react";
-import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "lucide-react";
+import { CalendarPlus, QrCode, Ticket, BadgeCheck, ChevronRight, CalendarX, ScanLine } from "./solar";
 import { NotificationBell } from "./NotificationBell";
 import { MembershipHero } from "./MembershipHero";
 import { ClassCarousel } from "./ClassCard";

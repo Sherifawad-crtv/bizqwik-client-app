@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronRight, CalendarPlus, Dumbbell, Tag } from "lucide-react";
+import { ChevronRight, CalendarPlus, Dumbbell, Tag } from "./solar";
 import { Sheet, Kicker, SheetTitle, Button, ConfirmSheet, useMountedSheet } from "./Sheet";
 import { api, type Booking, type GymClass, type PlanOffer, type PlansData, type PtBundle } from "../../../lib/api";
 import { defaultClassImage, egp, offerDetail, relativeWhen, timeLabel, whenLabel } from "../../../lib/plans";
