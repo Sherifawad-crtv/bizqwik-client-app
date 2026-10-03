@@ -39,7 +39,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <div className="px-6 pt-16 pb-8">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

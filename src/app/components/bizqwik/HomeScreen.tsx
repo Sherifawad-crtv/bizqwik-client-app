@@ -77,7 +77,7 @@ export function HomeScreen({ data, onReload, userName, onWalletClick, onPointsCl
 
   return (
     <div className="min-h-full bg-white pb-28">
-      <div className="px-6 pt-14 pb-5 flex items-center justify-between gap-3">
+      <div className="px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-11 h-11 flex-none rounded-full bg-[var(--bq-primary)] text-[var(--bq-on-primary)] flex items-center justify-center font-display text-[18px]">{initials}</div>
           <div className="min-w-0">

@@ -23,7 +23,7 @@ export function LocationScreen({
   const logo = data?.branding.logoUrl ?? null;
 
   return (
-    <div className="min-h-full bg-white px-6 pt-14 pb-10 flex flex-col">
+    <div className="min-h-full bg-white px-6 pt-[calc(env(safe-area-inset-top)+16px)] pb-10 flex flex-col">
       {onBack && (
         <button onClick={onBack} aria-label="Back" className="self-start -ml-2 mb-4 w-10 h-10 rounded-full flex items-center justify-center text-[var(--bq-text-primary)]">
           <ChevronLeft className="w-6 h-6" />
