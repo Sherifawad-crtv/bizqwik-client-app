@@ -5,7 +5,7 @@ import { EmptyState } from "./EmptyState";
 import { NotificationBell } from "./NotificationBell";
 import { api, type PriceOffer, type PricesData } from "../../../lib/api";
 import { compressImage } from "../../../lib/image";
-import { egp, shortDate } from "../../../lib/plans";
+import { egp, num, shortDate } from "../../../lib/plans";
 
 interface PricesScreenProps {
   onNotificationsClick: () => void;
@@ -28,6 +28,7 @@ export function PricesScreen({ onNotificationsClick, notificationCount }: Prices
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState<PriceOffer | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [tab, setTab] = useState<"classes" | "pt">("classes");
 
   const load = useCallback(() => {
     api
@@ -44,6 +45,8 @@ export function PricesScreen({ onNotificationsClick, notificationCount }: Prices
 
   const plans = (data?.offers ?? []).filter((o) => o.offerType === "plan_type");
   const pt = (data?.offers ?? []).filter((o) => o.offerType === "bundle_type");
+  // Both kinds: a toggle picks one. Only one kind: just show it.
+  const shownTab = plans.length === 0 ? "pt" : pt.length === 0 ? "classes" : tab;
   const lastRejected = !data?.pending ? data?.recent.find((r) => r.status === "rejected") : null;
 
   const Card = ({ o }: { o: PriceOffer }) => (
@@ -53,7 +56,10 @@ export function PricesScreen({ onNotificationsClick, notificationCount }: Prices
           <div className="text-[var(--bq-text-primary)] font-display text-[17px]">{o.name}</div>
           <div className="text-[var(--bq-text-secondary)] text-sm mt-0.5">{detail(o)}</div>
         </div>
-        <div className="text-[var(--bq-text-primary)] font-display flex-none">{egp(o.price)}</div>
+        <div className="flex-none text-right leading-none">
+          <div className="font-display font-extrabold text-[26px] text-[var(--bq-text-primary)] tabular-nums">{num(o.price)}</div>
+          <div className="text-[11px] font-semibold tracking-wide text-[var(--bq-text-secondary)] mt-1">EGP</div>
+        </div>
       </div>
       <button
         disabled={!o.canRequest || !!data?.pending}
@@ -134,24 +140,38 @@ export function PricesScreen({ onNotificationsClick, notificationCount }: Prices
 
           {data.offers.length === 0 && <EmptyState icon={<Tag />} title="No prices yet" body="Your coach hasn't added prices for your location yet." />}
 
-          {groups.map(({ g, items }) => (
-            <div key={g}>
-              <h2 className="font-display text-[20px] text-[var(--bq-text-primary)] mt-3 mb-2">{groups.length > 1 ? `${g} classes` : "Classes"}</h2>
-              <div className="flex flex-col gap-3">
-                {items.map((o) => (
-                  <Card key={o.id} o={o} />
-                ))}
-              </div>
+          {plans.length > 0 && pt.length > 0 && (
+            <div role="tablist" aria-label="Prices" className="grid grid-cols-2 p-1 rounded-full bg-[var(--bq-neutral)] mt-1">
+              {(["classes", "pt"] as const).map((t) => (
+                <button
+                  key={t}
+                  role="tab"
+                  aria-selected={shownTab === t}
+                  onClick={() => setTab(t)}
+                  className={`h-11 rounded-full text-[15px] font-semibold transition-colors ${shownTab === t ? "bg-[var(--bq-primary)] text-[var(--bq-on-primary)] shadow-sm" : "text-[var(--bq-text-secondary)]"}`}
+                >
+                  {t === "classes" ? "Classes" : "Private training"}
+                </button>
+              ))}
             </div>
-          ))}
-          {pt.length > 0 && (
-            <div>
-              <h2 className="font-display text-[20px] text-[var(--bq-text-primary)] mt-3 mb-2">Personal training</h2>
-              <div className="flex flex-col gap-3">
-                {pt.map((o) => (
-                  <Card key={o.id} o={o} />
-                ))}
+          )}
+
+          {shownTab === "classes" &&
+            groups.map(({ g, items }) => (
+              <div key={g}>
+                <h2 className="font-display text-[20px] text-[var(--bq-text-primary)] mt-3 mb-2">{groups.length > 1 ? `${g} classes` : "Classes"}</h2>
+                <div className="flex flex-col gap-3">
+                  {items.map((o) => (
+                    <Card key={o.id} o={o} />
+                  ))}
+                </div>
               </div>
+            ))}
+          {shownTab === "pt" && (
+            <div className="flex flex-col gap-3 mt-2">
+              {pt.map((o) => (
+                <Card key={o.id} o={o} />
+              ))}
             </div>
           )}
         </div>

@@ -21,9 +21,14 @@ test("solo gym: Prices tab replaces Bookings and lists Kids / Adults / PT", asyn
   await expect(page.getByRole("heading", { name: "Prices", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Kids classes" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Adults classes" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Personal training" })).toBeVisible();
-  await expect(page.getByText("8 sessions · no expiry")).toBeVisible();
   await expect(page.getByText("Adults 24 classes")).toBeVisible();
+  // Private training is behind the toggle at the top.
+  await expect(page.getByText("8 sessions · no expiry")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Classes" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Private training" }).click();
+  await expect(page.getByText("8 sessions · no expiry")).toBeVisible();
+  await expect(page.getByText("Adults 24 classes")).toHaveCount(0);
+  await expect(page.getByText("9,000", { exact: true })).toBeVisible();
 });
 
 test("team gym has no Prices tab", async ({ page }) => {
@@ -89,5 +94,14 @@ test("a rejected payment shows the reason; an active plan blocks another plan", 
   await page.getByRole("button", { name: "Prices", exact: true }).click();
   await expect(page.getByTestId("rejected-payment")).toContainText("Amount didn't match");
   await expect(page.getByRole("button", { name: "You have an active plan" })).toBeDisabled();
+  await page.getByRole("tab", { name: "Private training" }).click();
   await expect(page.getByRole("button", { name: "Pay with InstaPay" })).toBeEnabled();
+});
+
+test("only one kind on sale: no toggle, just that list", async ({ page }) => {
+  await mockBackend(page, { mode: "solo", prices: { offers: [{ offerType: "plan_type", id: "pt-a8", name: "Adults 8 classes", price: 5000, months: 1, count: 8, canRequest: true }] } });
+  await signIn(page);
+  await page.getByRole("button", { name: "Prices", exact: true }).click();
+  await expect(page.getByText("Adults 8 classes")).toBeVisible();
+  await expect(page.getByRole("tablist")).toHaveCount(0);
 });
