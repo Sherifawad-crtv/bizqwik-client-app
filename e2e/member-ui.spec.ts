@@ -60,7 +60,7 @@ test("schedule: the day picker leads, and the day's classes are grouped by start
 test("notifications: the bell shows unread, the list opens and marks them read", async ({ page }) => {
   let readAll: Record<string, unknown> | null = null;
   await signIn(page, { notifications: NOTIFICATIONS, onReadAll: (b) => (readAll = b) });
-  const bell = page.locator("button").filter({ has: page.locator("svg.lucide-bell") }).first();
+  const bell = page.getByRole("button", { name: /^Notifications/ }).first();
   await expect(bell).toContainText("1");
   await bell.click();
   await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
