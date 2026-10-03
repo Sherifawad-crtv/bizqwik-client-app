@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { api, errorCode, type GymClass, type GroupPlan } from "../../../lib/api";
 import { egp, whenLabel } from "../../../lib/plans";
 import { AvatarStack } from "./ClassCard";
+import { useClassesReadOnly } from "../../../lib/branding";
 import { Sheet, Kicker, SheetTitle, SheetSub, ErrorNote, Button, SheetSuccessIcon, ConfirmSheet, useMountedSheet, useSheetSuccess } from "./Sheet";
 
 type PayChoice = { payMethod: "wallet" | "desk"; useDropIn: boolean };
@@ -10,7 +11,67 @@ type PayChoice = { payMethod: "wallet" | "desk"; useDropIn: boolean };
  * onto the plan (a bundle's session is used at check-in). Anything else is a
  * drop-in — and if a plan is still running, the server asks first ("you still
  * have X going on") and we confirm before charging. */
-export function BookingSheet({ cls, plan, walletBalance, onClose, onBooked }: { cls: GymClass; plan: GroupPlan | null; walletBalance: number; onClose: () => void; onBooked: () => void }) {
+export function BookingSheet(props: { cls: GymClass; plan: GroupPlan | null; walletBalance: number; onClose: () => void; onBooked: () => void }) {
+  // A solo gym takes no bookings or payments: members just say they're coming.
+  return useClassesReadOnly() ? <RsvpSheet cls={props.cls} onClose={props.onClose} onDone={props.onBooked} /> : <PaidBookingSheet {...props} />;
+}
+
+/** Solo gyms: "I'm coming" / "Can't make it". Free, no plan, no limit — the
+ * owner just sees how many to expect. */
+function RsvpSheet({ cls, onClose, onDone }: { cls: GymClass; onClose: () => void; onDone: () => void }) {
+  const [open, close] = useMountedSheet(onClose);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(!!cls.booked);
+  const { confirmed, iconIn, showSuccess } = useSheetSuccess(open, () => {
+    close();
+    onDone();
+  }, 1400);
+  const go = async (going: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.rsvp(cls.id, going);
+      setNow(going);
+      showSuccess();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't save that.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Sheet open={open} onClose={busy ? () => {} : close} label={cls.title}>
+      {confirmed ? (
+        <SheetSuccessIcon label={now ? "See you there!" : "Got it"} sub={now ? "Your coach knows you're coming." : "We've taken you off the list."} iconIn={iconIn} />
+      ) : (
+        <>
+          <Kicker>{cls.booked ? "You're going" : "Coming?"}</Kicker>
+          <SheetTitle>{cls.title}</SheetTitle>
+          <SheetSub>{whenLabel(cls.startsAt)}</SheetSub>
+          <div className="mb-4">
+            <AvatarStack going={cls.going} dark={false} label="coming" />
+          </div>
+          {error && <ErrorNote>{error}</ErrorNote>}
+          {cls.booked ? (
+            <Button variant="danger" fullWidth size="lg" disabled={busy} onClick={() => go(false)}>
+              {busy ? "Saving…" : "Can't make it"}
+            </Button>
+          ) : (
+            <Button fullWidth size="lg" disabled={busy} onClick={() => go(true)}>
+              {busy ? "Saving…" : "I'm coming"}
+            </Button>
+          )}
+          <Button variant="quiet" fullWidth style={{ marginTop: 8 }} onClick={close} disabled={busy}>
+            Close
+          </Button>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
+function PaidBookingSheet({ cls, plan, walletBalance, onClose, onBooked }: { cls: GymClass; plan: GroupPlan | null; walletBalance: number; onClose: () => void; onBooked: () => void }) {
   const [open, close] = useMountedSheet(onClose);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

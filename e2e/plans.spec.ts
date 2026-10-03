@@ -27,7 +27,7 @@ test("member: a class the plan covers books on the plan (bundle only reserves; t
   });
   await expect(page.getByText("10-Class Pack")).toBeVisible();
   await expect(page.getByTestId("membership-hero")).toContainText("/ 10 classes left");
-  await page.getByRole("button", { name: "Schedule" }).click();
+  await page.getByRole("button", { name: "Schedule", exact: true }).click();
   await expect(page.getByText("On your plan")).toBeVisible();
 
   await page.getByRole("button", { name: /Morning HIIT/ }).click();
@@ -51,7 +51,7 @@ test("member: a drop-in while a plan is running asks first, then charges", async
       return { body: { booking: { id: "bk-d", coverage: "drop_in" } } };
     },
   });
-  await page.getByRole("button", { name: "Schedule" }).click();
+  await page.getByRole("button", { name: "Schedule", exact: true }).click();
   await expect(page.getByText("150 EGP").first()).toBeVisible();
 
   await page.getByRole("button", { name: /Morning HIIT/ }).click();
