@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Award, Sparkles } from "lucide-react";
+import { Award, Sparkles } from "./solar";
 
 interface PointsBadgeProps {
   points: number;

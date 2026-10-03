@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { TrendingUp, TrendingDown, ArrowLeft, Receipt, RotateCcw } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowLeft, Receipt, RotateCcw } from "./solar";
 import { NotificationBell } from "./NotificationBell";
 import { api, type MoneyEvent, type WalletData } from "../../../lib/api";
 import { num } from "../../../lib/plans";

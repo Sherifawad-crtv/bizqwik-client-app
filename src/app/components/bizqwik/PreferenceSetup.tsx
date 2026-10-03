@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Check, MapPin, Dumbbell, Globe, ChevronRight } from "lucide-react";
+import { Check, MapPin, Dumbbell, Globe, ChevronRight } from "./solar";
 
 interface PreferenceSetupProps {
   onComplete: (preferences: UserPreferences) => void;

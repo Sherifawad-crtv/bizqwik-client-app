@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, Copy, Check, Tag, XCircle } from "lucide-react";
+import { Clock, Copy, Check, Tag, XCircle } from "./solar";
 import { Button, ErrorNote, Kicker, Sheet, SheetSub, SheetSuccessIcon, SheetTitle, useSheetSuccess } from "./Sheet";
 import { EmptyState } from "./EmptyState";
 import { NotificationBell } from "./NotificationBell";

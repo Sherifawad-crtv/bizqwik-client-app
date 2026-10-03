@@ -1,4 +1,4 @@
-import { ArrowLeft, CreditCard, Wallet, Plus, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, CreditCard, Wallet, Plus, Check, Trash2 } from "./solar";
 import { useState } from "react";
 
 interface PaymentMethodsScreenProps {

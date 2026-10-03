@@ -1,6 +1,6 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CalendarCheck, CalendarX, CheckCircle2, Ticket, BadgeCheck, Dumbbell, Wallet, AlarmClock, Bell } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarX, CheckCircle2, Ticket, BadgeCheck, Dumbbell, Wallet, AlarmClock, Bell } from "./solar";
 import { api, type AppNotification } from "../../../lib/api";
 import { useFeedback } from "../../../lib/feedback";
 import { enablePush, pushState, type PushState } from "../../../lib/push";

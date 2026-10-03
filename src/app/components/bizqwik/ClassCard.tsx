@@ -1,5 +1,5 @@
 import { useClassesReadOnly } from "../../../lib/branding";
-import { Clock, Check } from "lucide-react";
+import { Clock, Check } from "./solar";
 import type { Going, GymClass } from "../../../lib/api";
 import { defaultClassImage, egp, relativeWhen, timeLabel } from "../../../lib/plans";
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageCircle, Mail, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, MessageCircle, Mail, Phone, ChevronDown, ChevronUp } from "./solar";
 import { useState } from "react";
 
 interface SupportScreenProps {

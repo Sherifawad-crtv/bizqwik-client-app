@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Check, Plus } from "lucide-react";
+import { ArrowLeft, MapPin, Check, Plus } from "./solar";
 import { useState } from "react";
 
 interface LinkedGymsScreenProps {

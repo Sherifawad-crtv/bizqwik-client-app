@@ -1,6 +1,6 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarX } from "lucide-react";
+import { CalendarX } from "./solar";
 import { NotificationBell } from "./NotificationBell";
 import { ClassCarousel, ClassCarouselSkeleton } from "./ClassCard";
 import { BookingSheet } from "./BookingSheet";

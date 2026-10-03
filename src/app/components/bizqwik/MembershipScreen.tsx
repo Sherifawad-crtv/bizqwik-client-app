@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ShieldCheck, CalendarClock, Ticket, Lock, Tag } from "lucide-react";
+import { ShieldCheck, CalendarClock, Ticket, Lock, Tag } from "./solar";
 import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { useBranding } from "../../../lib/branding";

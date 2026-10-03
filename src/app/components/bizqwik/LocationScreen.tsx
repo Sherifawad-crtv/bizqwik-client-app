@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin } from "./solar";
 import { useBranding } from "../../../lib/branding";
 import type { GymLocation } from "../../../lib/api";
 

@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Flame } from "lucide-react";
+import { Flame } from "./solar";
 
 interface StreakIndicatorProps {
   days: number;

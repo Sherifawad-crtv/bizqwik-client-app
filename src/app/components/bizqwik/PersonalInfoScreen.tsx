@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, Save } from "lucide-react";
+import { ArrowLeft, Camera, Save } from "./solar";
 import { useState } from "react";
 
 interface PersonalInfoScreenProps {

@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "lucide-react";
+import { Star, ArrowLeft, Plus, Wallet, Clock, Sparkles } from "./solar";
 import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { api, type PointsData } from "../../../lib/api";
