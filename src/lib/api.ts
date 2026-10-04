@@ -69,6 +69,11 @@ export interface GroupPlan {
   startsAt: string;
   expiresAt: string;
   status: "active" | "finished";
+  // The freeze a plan includes: its length in days, when the running freeze ends
+  // (the plan restarts by itself then), and whether it can still be used.
+  freezeDays?: number;
+  frozenUntil?: string | null;
+  canFreeze?: boolean;
 }
 export interface PlanOffer {
   offerType: "plan_type" | "series";
@@ -194,6 +199,8 @@ export const api = {
   plans: () => callFn<PlansData>("client/plans"),
   // Prices + how to pay (solo gyms): pay by InstaPay, upload the receipt, the owner approves.
   prices: () => callFn<PricesData>("client/prices"),
+  // Freeze the plan once, for the length it includes; it restarts by itself.
+  freezePlan: () => callFn<{ plan: GroupPlan }>("client/plans/freeze", { method: "POST" }),
   requestPayment: (offer: PriceOffer, proof: string) =>
     callFn<{ request: PaymentRequest }>("client/payment-requests", { method: "POST", body: { offerType: offer.offerType, id: offer.id, proof } }),
   cancelPayment: (id: string) => callFn<{ ok: true }>(`client/payment-requests/${id}/cancel`, { method: "POST" }),
