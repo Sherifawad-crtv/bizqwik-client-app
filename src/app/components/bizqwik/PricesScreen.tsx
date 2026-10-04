@@ -12,10 +12,17 @@ interface PricesScreenProps {
   notificationCount: number;
 }
 
-const detail = (o: PriceOffer) => {
-  if (o.offerType === "plan_type") return `${o.count} classes · valid ${o.months} month${o.months === 1 ? "" : "s"}`;
-  return `${o.count} sessions · ${o.expiryDays ? `valid ${o.expiryDays} days` : "no expiry"}`;
+// What a member gets. A 1-month plan includes a 1-week freeze and a 3-month plan
+// a 2-week freeze (pause it when away; the end date moves out by that long).
+const freezeOf = (months: number | null): string | null => (months === 1 ? "1 week freeze" : months === 3 ? "2 weeks freeze" : null);
+const benefits = (o: PriceOffer): string[] => {
+  if (o.offerType === "plan_type") {
+    const freeze = freezeOf(o.months);
+    return [`${o.count} classes`, `Valid ${o.months} month${o.months === 1 ? "" : "s"}`, ...(freeze ? [freeze] : [])];
+  }
+  return [`${o.count} sessions`, o.expiryDays ? `Valid ${o.expiryDays} days` : "No expiry"];
 };
+const detail = (o: PriceOffer) => benefits(o).join(" · ");
 
 /** Kids / Adults first, from the first word of the name. */
 const groupOf = (name: string) => (/^kids\b/i.test(name) ? "Kids" : /^adults?\b/i.test(name) ? "Adults" : "Other");
@@ -54,7 +61,13 @@ export function PricesScreen({ onNotificationsClick, notificationCount }: Prices
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[var(--bq-text-primary)] font-display text-[17px]">{o.name}</div>
-          <div className="text-[var(--bq-text-secondary)] text-sm mt-0.5">{detail(o)}</div>
+          <ul className="mt-2 flex flex-col gap-1" aria-label={`What you get with ${o.name}`}>
+            {benefits(o).map((b) => (
+              <li key={b} className="flex items-center gap-1.5 text-sm text-[var(--bq-text-secondary)]">
+                <Check className="w-3.5 h-3.5 flex-none text-[var(--bq-primary-readable)]" /> {b}
+              </li>
+            ))}
+          </ul>
         </div>
         <div className="flex-none text-right leading-none">
           <div className="font-display font-extrabold text-[26px] text-[var(--bq-text-primary)] tabular-nums">{num(o.price)}</div>

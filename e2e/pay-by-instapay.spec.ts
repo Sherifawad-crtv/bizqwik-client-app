@@ -23,10 +23,11 @@ test("solo gym: Prices tab replaces Bookings and lists Kids / Adults / PT", asyn
   await expect(page.getByRole("heading", { name: "Adults classes" })).toBeVisible();
   await expect(page.getByText("Adults 24 classes")).toBeVisible();
   // Private training is behind the toggle at the top.
-  await expect(page.getByText("8 sessions · no expiry")).toHaveCount(0);
+  await expect(page.getByText("No expiry")).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Classes" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "Private training" }).click();
-  await expect(page.getByText("8 sessions · no expiry")).toBeVisible();
+  await expect(page.getByText("No expiry")).toBeVisible();
+  await expect(page.getByText("8 sessions", { exact: true })).toBeVisible();
   await expect(page.getByText("Adults 24 classes")).toHaveCount(0);
   await expect(page.getByText("9,000", { exact: true })).toBeVisible();
 });
@@ -104,4 +105,27 @@ test("only one kind on sale: no toggle, just that list", async ({ page }) => {
   await page.getByRole("button", { name: "Prices", exact: true }).click();
   await expect(page.getByText("Adults 8 classes")).toBeVisible();
   await expect(page.getByRole("tablist")).toHaveCount(0);
+});
+
+test("what you get: a 1-month plan has a 1 week freeze, a 3-month plan 2 weeks, PT none", async ({ page }) => {
+  await mockBackend(page, { mode: "solo" });
+  await signIn(page);
+  await page.getByRole("button", { name: "Prices", exact: true }).click();
+  const one = page.getByRole("list", { name: "What you get with Adults 8 classes" });
+  await expect(one).toContainText("8 classes");
+  await expect(one).toContainText("Valid 1 month");
+  await expect(one).toContainText("1 week freeze");
+  const three = page.getByRole("list", { name: "What you get with Adults 24 classes" });
+  await expect(three).toContainText("Valid 3 months");
+  await expect(three).toContainText("2 weeks freeze");
+  await page.getByRole("tab", { name: "Private training" }).click();
+  await expect(page.getByRole("list", { name: /What you get with Adults personal training/ })).not.toContainText("freeze");
+});
+
+test("the pay sheet repeats what they get, freeze included", async ({ page }) => {
+  await mockBackend(page, { mode: "solo" });
+  await signIn(page);
+  await page.getByRole("button", { name: "Prices", exact: true }).click();
+  await page.getByText("Adults 24 classes").locator("xpath=ancestor::div[contains(@class,'rounded-[1.25rem]')][1]").getByRole("button", { name: "Pay with InstaPay" }).click();
+  await expect(page.getByRole("dialog").getByText("24 classes · Valid 3 months · 2 weeks freeze")).toBeVisible();
 });
