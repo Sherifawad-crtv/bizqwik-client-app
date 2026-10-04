@@ -1,6 +1,7 @@
 // The member app's icons, all from Solar (linear) so every screen shares one
 // style. Named after what they were called before so screens keep reading the same.
 
+export { CloudSnowfallIcon as Snowflake } from "@solar-icons/react/linear/cloud-snowfall";
 export { AlarmIcon as AlarmClock } from "@solar-icons/react/linear/alarm";
 export { DangerCircleIcon as AlertCircle } from "@solar-icons/react/linear/danger-circle";
 export { ArrowLeftIcon as ArrowLeft } from "@solar-icons/react/linear/arrow-left";

@@ -125,6 +125,8 @@ export interface MockOptions {
   onCancelPay?: () => void;
   // Solo gyms: "I'm coming" taps.
   onRsvp?: (classId: string, body: Record<string, unknown>) => void;
+  // Plan freeze taps.
+  onFreeze?: () => void;
 }
 
 // Intercept every Supabase call — GoTrue auth + the edge function — so the app
@@ -187,6 +189,10 @@ export async function mockBackend(page: Page, opts: MockOptions = {}) {
     if (path.includes("/client/payment-requests/") && path.endsWith("/cancel")) {
       opts.onCancelPay?.();
       return json(route, { ok: true });
+    }
+    if (path.endsWith("/client/plans/freeze")) {
+      opts.onFreeze?.();
+      return json(route, { plan: { ...BUNDLE_PLAN, canFreeze: false, frozenUntil: new Date(Date.now() + 7 * 86400000).toISOString() } });
     }
     if (path.endsWith("/client/plans/buy")) {
       if (opts.onBuy) {

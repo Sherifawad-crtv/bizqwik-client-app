@@ -18,7 +18,8 @@ export function MembershipHero({ plan, pkg, onOpen }: { plan: GroupPlan | null; 
   if (plan) {
     label = PLAN_KIND_LABEL[plan.kind];
     title = plan.name;
-    detail = `Until ${shortDate(plan.expiresAt)}`;
+    detail = plan.frozenUntil ? `Frozen until ${shortDate(plan.frozenUntil)} · restarts by itself` : `Until ${shortDate(plan.expiresAt)}`;
+    if (plan.frozenUntil) label = "Frozen";
     if (plan.kind === "bundle") {
       big = String(plan.creditsRemaining ?? 0);
       of = `/ ${plan.creditsTotal}`;

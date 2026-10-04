@@ -1,13 +1,15 @@
 import { EmptyState } from "./EmptyState";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ShieldCheck, CalendarClock, Ticket, Lock, Tag } from "./solar";
+import { ShieldCheck, CalendarClock, Ticket, Lock, Tag, Snowflake } from "./solar";
 import { ConfirmSheet } from "./Sheet";
 import { NotificationBell } from "./NotificationBell";
 import { useBranding } from "../../../lib/branding";
 import { api, type PlanOffer, type PlansData, type PtBundle } from "../../../lib/api";
 import { PtCodes } from "./PtCodes";
 import { PLAN_KIND_LABEL, egp, offerDetail, planDetail, shortDate } from "../../../lib/plans";
+
+const freezeLabel = (days: number) => (days % 7 === 0 ? `${days / 7} week${days === 7 ? "" : "s"}` : `${days} days`);
 
 interface MembershipScreenProps {
   onNotificationsClick: () => void;
@@ -25,6 +27,7 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [buying, setBuying] = useState<PlanOffer | null>(null);
+  const [freezing, setFreezing] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([api.plans(), api.ptBundles()])
@@ -70,7 +73,7 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
               className="rounded-[1.5rem] p-6 text-[var(--bq-on-primary)] bg-gradient-to-br from-[var(--bq-primary)] to-[var(--bq-primary-dark)] shadow-[var(--glow-primary)]"
             >
               <div className="flex items-center gap-2 text-[var(--bq-on-primary)]/85 text-sm">
-                <ShieldCheck className="w-4 h-4" /> Active · {PLAN_KIND_LABEL[plan.kind]}
+                {plan.frozenUntil ? <Snowflake className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />} {plan.frozenUntil ? "Frozen" : "Active"} · {PLAN_KIND_LABEL[plan.kind]}
               </div>
               <div className="font-display text-[26px] mt-2">{plan.name}</div>
               {plan.kind === "bundle" && (
@@ -81,6 +84,19 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
               <div className="flex items-center gap-2 text-[var(--bq-on-primary)]/80 text-sm mt-1.5">
                 <CalendarClock className="w-4 h-4" /> Valid until {shortDate(plan.expiresAt)}
               </div>
+              {plan.frozenUntil && (
+                <div data-testid="frozen-note" className="mt-3 rounded-[1rem] bg-white/15 px-3 py-2 text-sm">
+                  Frozen until {shortDate(plan.frozenUntil)} — it restarts by itself, no need to do anything.
+                </div>
+              )}
+              {plan.canFreeze && (
+                <button
+                  onClick={() => setFreezing(true)}
+                  className="mt-4 w-full h-11 rounded-[1rem] bg-white/15 text-[var(--bq-on-primary)] text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                >
+                  <Snowflake className="w-4 h-4" /> Freeze my plan · {freezeLabel(plan.freezeDays ?? 0)}
+                </button>
+              )}
               {plan.invitationsRemaining > 0 && (
                 <div className="text-[var(--bq-on-primary)]/80 text-sm mt-1.5">
                   {plan.invitationsRemaining} guest pass{plan.invitationsRemaining === 1 ? "" : "es"} left — ask the front desk
@@ -146,6 +162,25 @@ export function MembershipScreen({ onNotificationsClick, notificationCount }: Me
           <p className="text-[var(--bq-text-tertiary)] text-xs text-center mt-6">Paying cash or card? The {gym} front desk can sell you any plan.</p>
         </div>
       )}
+
+      <ConfirmSheet
+        open={freezing}
+        onClose={() => setFreezing(false)}
+        kicker="Freeze plan"
+        title={`Freeze ${plan?.name ?? "your plan"}?`}
+        sub={
+          plan
+            ? `It pauses today for ${freezeLabel(plan.freezeDays ?? 0)} and your end date moves out by the same time, to ${shortDate(new Date(Date.parse(plan.expiresAt) + (plan.freezeDays ?? 0) * 86400000).toISOString())}. It restarts by itself on ${shortDate(new Date(Date.now() + (plan.freezeDays ?? 0) * 86400000).toISOString())}. You can't check in while it's frozen, and each plan can be frozen once.`
+            : undefined
+        }
+        confirmLabel="Freeze now"
+        doneLabel="Plan frozen"
+        onConfirm={async () => {
+          await api.freezePlan();
+          load();
+          return "It restarts by itself when the freeze is over.";
+        }}
+      />
 
       <ConfirmSheet
         open={buying !== null}
