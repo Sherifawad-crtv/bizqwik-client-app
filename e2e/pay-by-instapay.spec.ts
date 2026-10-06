@@ -62,7 +62,7 @@ test("pay by InstaPay: copy the address, upload the receipt, send for approval",
   await expect(page.getByText("Sent for approval")).toBeVisible();
   expect(sent).toHaveLength(1);
   expect(sent[0]).toMatchObject({ offerType: "plan_type", id: "pt-a8" });
-  expect(String(sent[0].proof)).toMatch(/^data:image\/jpeg;base64,/);
+  expect(String(sent[0].proof)).toMatch(/^data:image\/webp;base64,/);
 });
 
 test("waiting for approval locks the buttons and can be cancelled", async ({ page }) => {

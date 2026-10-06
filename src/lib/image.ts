@@ -1,5 +1,6 @@
-/** Shrinks a photo/screenshot to a JPEG data URL (longest side `max` px) so a
- * receipt uploads quickly on mobile data. */
+/** Shrinks a photo/screenshot to a WebP data URL (longest side `max` px) so a
+ * receipt uploads quickly on mobile data. A browser that can't write WebP
+ * (some older Safari) gets a JPEG instead, so the upload still works. */
 export async function compressImage(file: File, max = 1280, quality = 0.82): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
@@ -12,5 +13,6 @@ export async function compressImage(file: File, max = 1280, quality = 0.82): Pro
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close?.();
-  return canvas.toDataURL("image/jpeg", quality);
+  const webp = canvas.toDataURL("image/webp", quality);
+  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", quality);
 }
